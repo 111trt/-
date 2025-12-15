@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiGlobe Pro - 寰球智运规划平台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --neon-blue: #00d2ff; --neon-pink: #ff3366; --neon-green: #00ff99; --bg-dark: #050a14; --panel-bg: rgba(5, 10, 20, 0.92); }
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Rajdhani', 'Segoe UI', sans-serif; background: #000; color: #fff; }
+        #app { position: relative; width: 100vw; height: 100vh; }
+        
+        /* INTRO */
+        #intro-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 1s; }
+        #intro-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2001; background: radial-gradient(circle at center, #0b1026 0%, #000000 100%); }
+        .intro-content { z-index: 2002; text-align: center; pointer-events: none; animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 5rem; text-transform: uppercase; letter-spacing: 0.8rem; margin: 0; background: linear-gradient(to bottom, #ffffff, var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 210, 255, 0.5); }
+        .subtitle { font-size: 1.5rem; color: #aaccff; margin-bottom: 4rem; letter-spacing: 0.3rem; text-transform: uppercase; }
+        #enter-btn { pointer-events: auto; padding: 15px 50px; font-size: 1.2rem; background: rgba(0, 210, 255, 0.1); color: var(--neon-blue); border: 2px solid var(--neon-blue); box-shadow: 0 0 20px rgba(0, 210, 255, 0.2); cursor: pointer; transition: all 0.3s; font-family: 'Orbitron', sans-serif; letter-spacing: 2px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+        #enter-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 40px var(--neon-blue); }
+        
+        /* MAP */
+        #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0; transition: opacity 1s; }
+        #ui-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; display: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); background-size: 100% 4px; }
+        
+        /* PANELS */
+        .ui-panel { background: var(--panel-bg); backdrop-filter: blur(10px); border: 1px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 15px rgba(0, 210, 255, 0.05); pointer-events: auto; position: absolute; color: #eee; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); }
+        .top-bar { top: 0; left: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,20,40,0.6) 100%); border-bottom: 1px solid var(--neon-blue); clip-path: none; z-index: 200; }
+        .logo-small { font-family: 'Orbitron'; font-weight: 900; font-size: 1.2rem; color: #fff; text-shadow: 0 0 10px var(--neon-blue); }
+        .status-badge { font-size: 0.9rem; color: var(--neon-green); border: 1px solid var(--neon-green); padding: 2px 8px; border-radius: 2px; margin-left: 15px; }
+        .back-btn { background: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink); padding: 5px 15px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; transition: 0.3s; }
+        .back-btn:hover { background: var(--neon-pink); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
+        
+        /* SIDEBAR */
+        .sidebar-container { position: absolute; top: 80px; left: 20px; bottom: 340px; width: 260px; pointer-events: none; display: flex; flex-direction: column; }
+        .sidebar { width: 100%; padding: 15px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+        .tool-group h3 { font-size: 0.8rem; color: var(--neon-blue); border-bottom: 1px solid rgba(0,210,255,0.3); padding-bottom: 5px; margin: 0 0 10px 0; letter-spacing: 1px; }
+        .tool-btn { width: 100%; background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); color: #aaccff; padding: 10px; cursor: pointer; text-align: left; margin-bottom: 5px; transition: 0.2s; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
+        .tool-btn:hover { background: rgba(0, 210, 255, 0.15); border-color: var(--neon-blue); color: #fff; }
+        .tool-btn.active { background: rgba(0, 210, 255, 0.3); border-color: var(--neon-blue); color: #fff; box-shadow: 0 0 10px rgba(0, 210, 255, 0.2); }
+        .tool-icon { width: 20px; text-align: center; }
+        
+        /* DASHBOARD */
+        .dashboard-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 320px; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; z-index: 150; }
+        .dashboard-toggle { pointer-events: auto; width: 140px; height: 25px; margin: 0 auto; background: var(--bg-dark); border: 1px solid var(--neon-blue); border-bottom: none; color: var(--neon-blue); cursor: pointer; font-size: 0.8rem; text-align: center; clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%); }
+        .dashboard { width: 96%; margin: 0 2% 15px 2%; height: 280px; display: flex; gap: 15px; transition: transform 0.3s; }
+        .dashboard.hidden { transform: translateY(120%); }
+        .kpi-card { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 15px; display: flex; flex-direction: column; }
+        .kpi-title { font-size: 0.9rem; color: var(--neon-blue); margin-bottom: 10px; text-transform: uppercase; }
+        .kpi-value { font-size: 2rem; font-weight: 700; color: #fff; margin-top: auto; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .kpi-sub { font-size: 0.8rem; color: #888; }
+        
+        /* MODALS */
+        .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: center; }
+        .modal { width: 500px; background: #0b101a; border: 1px solid var(--neon-blue); padding: 30px; position: relative; box-shadow: 0 0 50px rgba(0, 210, 255, 0.2); clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); }
+        .modal h2 { margin-top: 0; color: var(--neon-blue); border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; color: #888; margin-bottom: 5px; font-size: 0.9rem; }
+        .form-control { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #333; color: #fff; padding: 10px; font-family: 'Rajdhani'; font-size: 1rem; box-sizing: border-box; }
+        .form-control:focus { border-color: var(--neon-blue); outline: none; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-primary { background: var(--neon-blue); color: #000; border: none; padding: 10px 25px; font-weight: bold; cursor: pointer; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); }
+        .btn-cancel { background: transparent; color: #888; border: 1px solid #888; padding: 10px 25px; cursor: pointer; }
+        .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .plan-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 15px; cursor: pointer; transition: 0.2s; }
+        .plan-card:hover { border-color: var(--neon-blue); background: rgba(0, 210, 255, 0.1); }
+        .plan-head { font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .plan-detail { font-size: 0.9rem; color: #aaa; display: flex; justify-content: space-between; margin-top: 3px; }
+        .toast { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(0, 210, 255, 0.9); color: #000; padding: 10px 30px; font-weight: bold; z-index: 4000; display: none; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); box-shadow: 0 0 20px var(--neon-blue); }
+        
+        /* COCKPIT */
+        #cockpit-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2500; background: #050a14; display: none; flex-direction: column; background-image: linear-gradient(rgba(0, 210, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 210, 255, 0.03) 1px, transparent 1px); background-size: 50px 50px; }
+        .cockpit-grid { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 20px; padding: 20px; flex: 1; }
+        .cp-panel { background: rgba(10, 20, 30, 0.8); border: 1px solid rgba(0, 210, 255, 0.3); padding: 20px; }
+        .bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 150px; }
+        .bar { flex: 1; background: var(--neon-blue); opacity: 0.6; transition: height 0.5s; }
+
+        /* CYBER NODE MARKER */
+        .cyber-node {
+            width: 20px; height: 20px; background: var(--neon-blue); border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+            position: relative; animation: pulse 2s infinite;
+        }
+        .cyber-node::after {
+            content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border: 1px solid var(--neon-blue); border-radius: 50%; opacity: 0; animation: ripple 2s infinite;
+        }
+        .cyber-node.level-1 { width: 30px; height: 30px; background: var(--neon-pink); box-shadow: 0 0 15px var(--neon-pink); }
+        .cyber-node.level-1::after { border-color: var(--neon-pink); }
+        
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+        @keyframes ripple { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+    </style>
+    
+    <script src="js/three.min.js"></script>
+    <script type="text/javascript">window._AMapSecurityConfig = { securityJsCode: '3c1e92c638ba2d5ac175ac5ec49928fd' }</script>
+    <!-- Use HTTPS for AMap -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=fc4cff1c140271ad4b1479b2cd3ff216&plugin=AMap.Driving,AMap.MoveAnimation,AMap.BezierCurve,AMap.GeometryUtil"></script>
+</head>
+<body>
+<div id="app">
+    <!-- Intro -->
+    <div id="intro-layer">
+        <div id="intro-canvas"></div>
+        <div class="intro-content">
+            <h1>寰球智运 PRO</h1>
+            <p class="subtitle">未来物流数字孪生系统 V2.0</p>
+            <button id="enter-btn">启动系统 (INITIALIZE)</button>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div id="map-container"></div>
+    <div id="ui-overlay"></div>
+    <div id="toast" class="toast">系统消息</div>
+
+    <!-- UI Overlay (Main) -->
+    <div id="main-ui" style="display:none;">
+        <div class="top-bar">
+            <div style="display:flex; align-items:center;">
+                <div class="logo-small">LOGIGLOBE PRO</div>
+                <div class="status-badge">系统在线</div>
+                <div class="status-badge" style="border-color:var(--neon-blue); color:var(--neon-blue);">AI 引擎激活</div>
+            </div>
+            <button class="back-btn" onclick="systemExit()">退出系统</button>
+        </div>
+
+        <div class="sidebar-container">
+            <div class="sidebar ui-panel">
+                <div class="tool-group">
+                    <h3>网络运营 (OPS)</h3>
+                    <div class="tool-btn" id="btn-add" onclick="ui.openAddNodeModal()"><span class="tool-icon">+</span> 添加节点</div>
+                    <div class="tool-btn" id="btn-connect" onclick="ui.setMode('connect')"><span class="tool-icon">∞</span> 建立连接</div>
+                    <div class="tool-btn" onclick="logic.autoRoute()"><span class="tool-icon">⚡</span> AI 智能布网</div>
+                </div>
+                <div class="tool-group">
+                    <h3>仿真模拟 (SIM)</h3>
+                    <div class="tool-btn" onclick="logic.simulateEvent()"><span class="tool-icon">!</span> 触发突发事件</div>
+                    <div class="tool-btn" onclick="logic.clearAll()"><span class="tool-icon">🗑️</span> 重置系统</div>
+                </div>
+                <div class="tool-group">
+                    <h3>数据与输出 (I/O)</h3>
+                    <div class="tool-btn" onclick="ui.toggleCockpit()"><span class="tool-icon">🖥️</span> 全屏驾驶舱</div>
+                    <div class="tool-btn" onclick="io.exportReport()"><span class="tool-icon">📊</span> 导出分析报告</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-container">
+            <button class="dashboard-toggle" onclick="ui.toggleDashboard()">▼ 实时数据流 ▼</button>
+            <div class="dashboard ui-panel" id="dashboard-panel">
+                <div class="kpi-card">
+                    <div class="kpi-title">活跃节点</div>
+                    <div class="kpi-value" id="kpi-nodes">0</div>
+                    <div class="kpi-sub">全球枢纽</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">运行线路</div>
+                    <div class="kpi-value" id="kpi-routes">0</div>
+                    <div class="kpi-sub">最优路径</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">预估总成本</div>
+                    <div class="kpi-value" style="color:var(--neon-blue)" id="kpi-cost">$0</div>
+                    <div class="kpi-sub">百万美元 (USD)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">碳排放总量</div>
+                    <div class="kpi-value" style="color:var(--neon-green)" id="kpi-co2">0</div>
+                    <div class="kpi-sub">吨 CO2e</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- 1. Add Node Modal -->
+    <div id="modal-add-node" class="modal-overlay">
+        <div class="modal">
+            <h2>添加物流节点 (Add Node)</h2>
+            <div class="form-group">
+                <label>节点名称 (Name)</label>
+                <input type="text" id="node-name" class="form-control" placeholder="例如: 上海港">
+            </div>
+            <div class="form-group">
+                <label>所属区域 (Region)</label>
+                <select id="node-region" class="form-control">
+                    <option value="CN">中国区 (CN)</option>
+                    <option value="US">北美区 (US)</option>
+                    <option value="EU">欧洲区 (EU)</option>
+                    <option value="ASEAN">东南亚 (ASEAN)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>节点等级 (Level)</label>
+                <select id="node-level" class="form-control">
+                    <option value="1">Level 1 - 全球核心枢纽 (常驻显示)</option>
+                    <option value="2">Level 2 - 区域中心</option>
+                    <option value="3">Level 3 - 地方站点</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="ui.closeModals()">取消</button>
+                <button class="btn-primary" onclick="ui.confirmAddNode()">确认添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Route Plan Modal -->
+    <div id="modal-plan" class="modal-overlay">
+        <div class="modal" style="width: 700px;">
+            <h2>AI 路径规划方案 (Routing Options)</h2>
+            <p id="plan-desc" style="color:#aaa; margin-bottom: 20px;">正在分析连接可行性...</p>
+            
+            <div class="plan-grid">
+                <div class="plan-card" onclick="logic.selectRoute('1')">
+                    <div class="plan-head"><span style="color:#3366FF">🚛 公路运输 (ROAD)</span> <span>$$</span></div>
+                    <div class="plan-detail"><span>耗时: <b id="p-road-t">48h</b></span> <span>碳排: 低</span></div>
+                </div>
+                <div class="plan-card" onclick="logic.selectRoute('2')">
+                    <div class="plan-head"><span style="color:#00FFFF">🚢 远洋海运 (SEA)</span> <span>$</span></div>
+                    <div class="plan-detail"><span>耗时: <b id="p-sea-t">14d</b></span> <span>碳排: 中</span></div>
+                </div>
+                <div class="plan-card" onclick="logic.selectRoute('3')">
+                    <div class="plan-head"><span style="color:#FF00FF">✈️ 航空货运 (AIR)</span> <span>$$$</span></div>
+                    <div class="plan-detail"><span>耗时: <b id="p-air-t">12h</b></span> <span>碳排: 高</span></div>
+                </div>
+                <div class="plan-card" onclick="logic.selectRoute('4')">
+                    <div class="plan-head"><span style="color:#ccc">🚂 铁路运输 (RAIL)</span> <span>$$</span></div>
+                    <div class="plan-detail"><span>耗时: <b id="p-rail-t">72h</b></span> <span>碳排: 极低</span></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="ui.closeModals()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Cockpit -->
+    <div id="cockpit-view">
+        <div class="top-bar">
+            <div class="logo-small">指挥中心 (COMMAND CENTER)</div>
+            <button class="back-btn" onclick="ui.toggleCockpit()">关闭视图</button>
+        </div>
+        <div class="cockpit-grid">
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">系统状态 (SYSTEM STATUS)</h3>
+                <div style="margin-top:20px; font-size: 1.2rem;">
+                    <div>服务器负载: <span style="color:var(--neon-green)">12%</span></div>
+                    <div>API 延迟: <span style="color:var(--neon-green)">45ms</span></div>
+                    <div>在线 Agent: <span style="color:var(--neon-blue)">4</span></div>
+                </div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">全球运力热度 (TRAFFIC)</h3>
+                <div class="bar-chart" id="cp-chart">
+                    <div class="bar" style="height:30%"></div>
+                    <div class="bar" style="height:50%"></div>
+                    <div class="bar" style="height:80%"></div>
+                    <div class="bar" style="height:40%"></div>
+                    <div class="bar" style="height:60%"></div>
+                    <div class="bar" style="height:90%"></div>
+                </div>
+                <div style="margin-top:20px; color:#aaa; font-size:0.9rem;">
+                    AI 分析: 全球主航道通行状况良好，苏伊士运河无拥堵。
+                </div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">财务概览 (FINANCIALS)</h3>
+                <div style="font-size: 3rem; color:#fff; font-weight:bold; margin-top:20px;" id="cp-total-cost">$0</div>
+                <div style="color:#888;">累计运营成本 (Cumulative)</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- APP CORE ---
+    const App = {
+        map: null,
+        nodes: [],
+        routes: [],
+        connections: [],
+        state: {
+            mode: 'view',
+            tempStart: null,
+            routeCounts: {},
+            stats: { cost: 0, co2: 0, dist: 0 }
+        }
+    };
+
+    // --- 1. INITIALIZATION ---
+    function initSystem() {
+        initGlobe();
+        const btn = document.getElementById('enter-btn');
+        btn.addEventListener('click', () => {
+            btn.innerText = "系统加载中...";
+            setTimeout(() => initMap(), 500);
+        });
+    }
+
+    function initGlobe() {
+        const container = document.getElementById('intro-canvas');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.z = 15;
+        const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        const geom = new THREE.BufferGeometry();
+        const pos = [];
+        for(let i=0; i<2500; i++) {
+            const phi = Math.acos(-1 + (2*i)/2500);
+            const theta = Math.sqrt(2500 * Math.PI) * phi;
+            pos.push(6 * Math.cos(theta) * Math.sin(phi), 6 * Math.sin(theta) * Math.sin(phi), 6 * Math.cos(phi));
+        }
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        const globe = new THREE.Points(geom, new THREE.PointsMaterial({color: 0x00d2ff, size: 0.12}));
+        scene.add(globe);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            globe.rotation.y += 0.003;
+            renderer.render(scene, camera);
+        }
+        animate();
+    }
+
+    function initMap() {
+        if(typeof AMap === 'undefined') { alert("高德地图加载失败 (AMap Load Failed)"); return; }
+        
+        App.map = new AMap.Map('map-container', {
+            viewMode: '3D', zoom: 3, center: [116.39, 39.9], mapStyle: 'amap://styles/darkblue'
+        });
+
+        App.map.on('complete', () => {
+            document.getElementById('intro-layer').style.opacity = 0;
+            document.getElementById('map-container').style.opacity = 1;
+            document.getElementById('ui-overlay').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('intro-layer').style.display = 'none';
+                document.getElementById('main-ui').style.display = 'block';
+                logic.addMockData();
+                App.map.on('zoomchange', logic.updateLOD);
+            }, 1000);
+        });
+        
+        App.map.on('click', (e) => {
+            if(App.state.mode === 'addNode') {
+                App.state.tempCoords = e.lnglat;
+                ui.openAddNodeModal(true);
+            }
+        });
+    }
+
+    function systemExit() {
+        document.getElementById('main-ui').style.display = 'none';
+        document.getElementById('map-container').style.opacity = 0;
+        document.getElementById('intro-layer').style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('intro-layer').style.opacity = 1;
+            document.getElementById('enter-btn').innerText = "重新启动系统 (RE-INITIALIZE)";
+            App.map.destroy();
+            App.map = null;
+            App.nodes = [];
+            App.routes = [];
+            App.state.stats = { cost: 0, co2: 0 };
+        }, 1000);
+    }
+
+    // --- 2. LOGIC CONTROLLER ---
+    const logic = {
+        addNode: (name, pos, level, region) => {
+            // FIX: Use Custom Content Marker instead of Image to avoid file:// error
+            // and looks much cooler (Neon Pulse)
+            const isHub = level == 1;
+            const content = `<div class="cyber-node ${isHub ? 'level-1' : ''}"></div>`;
+            
+            const marker = new AMap.Marker({
+                position: pos,
+                content: content,
+                offset: new AMap.Pixel(isHub ? -15 : -10, isHub ? -15 : -10),
+                extData: { name, level, region },
+                zIndex: 100
+            });
+            
+            marker.setLabel({
+                offset: new AMap.Pixel(0, 0),
+                content: `<div style="color:#fff; font-family:'Rajdhani'; font-weight:bold; font-size:12px; background:rgba(0,0,0,0.7); padding:4px 8px; border:1px solid #00d2ff; border-radius:4px; margin-top:15px; box-shadow:0 0 10px #00d2ff;">${name}</div>`,
+                direction: 'bottom'
+            });
+
+            marker.on('click', () => logic.handleNodeClick(marker));
+            marker.on('rightclick', () => logic.deleteNode(marker));
+
+            App.map.add(marker);
+            App.nodes.push(marker);
+            logic.updateLOD();
+            ui.updateStats();
+        },
+
+        deleteNode: (marker) => {
+            if(confirm(`确认删除节点: ${marker.getExtData().name}?`)) {
+                App.map.remove(marker);
+                App.nodes = App.nodes.filter(n => n !== marker);
+                ui.showToast("节点已删除");
+                ui.updateStats();
+            }
+        },
+
+        handleNodeClick: (marker) => {
+            if (App.state.mode === 'connect') {
+                if (!App.state.tempStart) {
+                    App.state.tempStart = marker;
+                    // Custom highlight effect? 
+                    // AMap markers with custom content don't support setAnimation well if content is div.
+                    // We can just rely on Toast.
+                    ui.showToast(`已选择起点: ${marker.getExtData().name}`);
+                } else {
+                    if (App.state.tempStart === marker) return;
+                    const start = App.state.tempStart;
+                    App.state.tempStart = null;
+                    ui.openPlanModal(start, marker);
+                }
+            }
+        },
+
+        selectRoute: (type) => {
+            const plan = App.state.pendingPlan;
+            if(!plan) return;
+
+            let color = '#fff';
+            let style = 'solid';
+            if(type === '1') { color = '#3366FF'; } // Road
+            if(type === '2') { color = '#00FFFF'; style='dashed'; } // Sea
+            if(type === '3') { color = '#FF00FF'; } // Air
+            if(type === '4') { color = '#ccc'; style='dashed'; } // Rail
+
+            const s = plan.start.getPosition();
+            const e = plan.end.getPosition();
+            const key = [plan.start.getExtData().name, plan.end.getExtData().name].sort().join('-');
+            App.state.routeCounts[key] = (App.state.routeCounts[key] || 0) + 1;
+            const offsetIdx = App.state.routeCounts[key] - 1;
+
+            visuals.drawConnection(s, e, color, style, type, offsetIdx);
+            
+            // Stats
+            const dist = AMap.GeometryUtil.distance(s, e) / 1000;
+            let cost = 0, co2 = 0;
+            if(type==='1') { cost=dist*2; co2=dist*0.05; }
+            if(type==='2') { cost=dist*0.5; co2=dist*0.08; }
+            if(type==='3') { cost=dist*8; co2=dist*0.5; }
+            if(type==='4') { cost=dist*1; co2=dist*0.02; }
+            
+            if(plan.isCrossBorder) { cost += 500; }
+
+            App.state.stats.cost += cost;
+            App.state.stats.co2 += co2;
+            
+            App.connections.push({ from: plan.start.getExtData().name, to: plan.end.getExtData().name, type, cost, co2 });
+
+            ui.closeModals();
+            ui.updateStats();
+            ui.showToast("线路建立成功");
+        },
+
+        autoRoute: () => {
+            if(App.nodes.length < 2) return;
+            ui.showToast("AI 正在计算最优网络拓扑...");
+            const hubs = App.nodes.filter(n => n.getExtData().level == 1);
+            const others = App.nodes.filter(n => n.getExtData().level != 1);
+
+            others.forEach(node => {
+                let nearest = null;
+                let minD = Infinity;
+                hubs.forEach(h => {
+                    const d = AMap.GeometryUtil.distance(node.getPosition(), h.getPosition());
+                    if(d < minD) { minD = d; nearest = h; }
+                });
+                if(nearest) {
+                    visuals.drawConnection(node.getPosition(), nearest.getPosition(), '#3366FF', 'solid', '1', 0);
+                    App.state.stats.cost += (minD/1000) * 2;
+                    App.state.stats.co2 += (minD/1000) * 0.05;
+                }
+            });
+            ui.updateStats();
+        },
+
+        updateLOD: () => {
+            const zoom = App.map.getZoom();
+            App.nodes.forEach(n => {
+                const lvl = n.getExtData().level;
+                if(zoom < 5) { lvl == 1 ? n.show() : n.hide(); }
+                else if(zoom < 7) { lvl <= 2 ? n.show() : n.hide(); }
+                else { n.show(); }
+            });
+        },
+
+        simulateEvent: () => {
+            const circle = new AMap.Circle({
+                center: [130, 20], radius: 800000,
+                strokeColor: "#F33", strokeWeight: 2, fillColor: "rgba(255,0,0,0.3)", zIndex: 999
+            });
+            App.map.add(circle);
+            ui.showToast("警报: 太平洋海域探测到台风活动!");
+            
+            let count = 0;
+            const interval = setInterval(() => {
+                count++;
+                circle.setOptions({ fillOpacity: count%2==0 ? 0.3 : 0.6 });
+                if(count > 6) { clearInterval(interval); App.map.remove(circle); }
+            }, 500);
+        },
+
+        clearAll: () => {
+            App.map.clearMap();
+            App.nodes = [];
+            App.routes = [];
+            App.connections = [];
+            App.state.stats = { cost: 0, co2: 0 };
+            App.state.routeCounts = {};
+            ui.updateStats();
+        },
+
+        addMockData: () => {
+            logic.addNode('北京枢纽 (Beijing)', [116.4, 39.9], 1, 'CN');
+            logic.addNode('上海港 (Shanghai)', [121.5, 31.2], 1, 'CN');
+            logic.addNode('东京枢纽 (Tokyo)', [139.7, 35.7], 1, 'ASEAN');
+            logic.addNode('新加坡 (Singapore)', [103.8, 1.3], 1, 'ASEAN');
+            logic.addNode('伦敦 (London)', [-0.1, 51.5], 1, 'EU');
+            logic.addNode('纽约 (New York)', [-74.0, 40.7], 1, 'US');
+            logic.addNode('天津港 (Tianjin)', [117.2, 39.1], 2, 'CN');
+            
+            visuals.drawConnection([116.4, 39.9], [121.5, 31.2], '#3366FF', 'solid', '1', 0);
+            App.state.stats.cost += 2000;
+        }
+    };
+
+    // --- 3. VISUALS ---
+    const visuals = {
+        drawConnection: (s, e, color, style, type, offsetIdx) => {
+            let arch = 0.2;
+            if(offsetIdx > 0) {
+                const sign = offsetIdx % 2 === 0 ? 1 : -1;
+                arch = sign * (0.2 + Math.floor((offsetIdx+1)/2)*0.15);
+            }
+
+            const p1 = Array.isArray(s) ? new AMap.LngLat(s[0], s[1]) : s;
+            const p2 = Array.isArray(e) ? new AMap.LngLat(e[0], e[1]) : e;
+            const dx = p2.getLng() - p1.getLng();
+            const dy = p2.getLat() - p1.getLat();
+            const mid = [ (p1.getLng()+p2.getLng())/2, (p1.getLat()+p2.getLat())/2 ];
+            const cp = [ mid[0] - dy*arch, mid[1] + dx*arch ];
+
+            const path = [ [p1.getLng(), p1.getLat()], [cp[0], cp[1], p2.getLng(), p2.getLat()] ];
+            
+            const curve = new AMap.BezierCurve({
+                path: path,
+                strokeColor: color, strokeWeight: 3, strokeOpacity: 0.8,
+                strokeStyle: style, strokeDasharray: style==='dashed'?[10,10]:[0,0],
+                zIndex: 50
+            });
+            App.map.add(curve);
+            App.routes.push(curve);
+
+            visuals.startFlow(p1, p2, cp, type);
+        },
+
+        startFlow: (p1, p2, cp, type) => {
+            let icon = '✈️';
+            let speed = 10000;
+            if(type=='1') { icon='🚚'; speed=5000; }
+            if(type=='2') { icon='🚢'; speed=3000; }
+            if(type=='4') { icon='🚂'; speed=4000; }
+
+            const path = [];
+            for(let t=0; t<=1; t+=0.02) {
+                const x = (1-t)*(1-t)*p1.getLng() + 2*(1-t)*t*cp[0] + t*t*p2.getLng();
+                const y = (1-t)*(1-t)*p1.getLat() + 2*(1-t)*t*cp[1] + t*t*p2.getLat();
+                path.push([x,y]);
+            }
+
+            const marker = new AMap.Marker({
+                map: App.map, position: path[0],
+                content: `<div style="font-size:16px; transform:rotate(45deg); filter:drop-shadow(0 0 5px cyan);">${icon}</div>`,
+                offset: new AMap.Pixel(-8, -8)
+            });
+
+            function loop() {
+                marker.stopMove();
+                marker.setPosition(path[0]);
+                marker.moveAlong(path, speed, k=>k, false);
+            }
+            marker.on('moveend', () => setTimeout(loop, 1000));
+            loop();
+        }
+    };
+
+    // --- 4. UI CONTROLLER ---
+    const ui = {
+        setMode: (m) => {
+            App.state.mode = m;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            if(m==='connect') document.getElementById('btn-connect').classList.add('active');
+            ui.showToast(m === 'connect' ? "已进入连线模式：请依次点击起点和终点" : `模式切换: ${m}`);
+        },
+        
+        showToast: (msg) => {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        },
+
+        openAddNodeModal: (fromMap) => {
+            document.getElementById('modal-add-node').style.display = 'flex';
+            if(!fromMap) App.state.tempCoords = App.map.getCenter();
+        },
+
+        confirmAddNode: () => {
+            const name = document.getElementById('node-name').value || "新节点";
+            const region = document.getElementById('node-region').value;
+            const level = document.getElementById('node-level').value;
+            
+            logic.addNode(name, App.state.tempCoords, parseInt(level), region);
+            ui.closeModals();
+        },
+
+        openPlanModal: (start, end) => {
+            App.state.pendingPlan = { start, end };
+            const fromR = start.getExtData().region;
+            const toR = end.getExtData().region;
+            const isCross = fromR !== toR;
+            App.state.pendingPlan.isCrossBorder = isCross;
+
+            document.getElementById('plan-desc').innerHTML = `规划线路: <b>${start.getExtData().name}</b> → <b>${end.getExtData().name}</b><br>` + 
+                (isCross ? `<span style="color:#ff3366">⚠ 检测到跨境运输 (${fromR} -> ${toR}) 将产生 $500 关税</span>` : "国内/区域内运输");
+            
+            document.getElementById('modal-plan').style.display = 'flex';
+        },
+
+        closeModals: () => {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+            document.getElementById('node-name').value = "";
+        },
+
+        updateStats: () => {
+            document.getElementById('kpi-nodes').innerText = App.nodes.length;
+            document.getElementById('kpi-routes').innerText = App.routes.length;
+            document.getElementById('kpi-cost').innerText = "$" + (App.state.stats.cost/1000).toFixed(1) + "M";
+            document.getElementById('kpi-co2').innerText = (App.state.stats.co2).toFixed(1);
+            document.getElementById('cp-total-cost').innerText = "$" + (App.state.stats.cost/1000).toFixed(1) + "M";
+        },
+
+        toggleDashboard: () => {
+            document.getElementById('dashboard-panel').classList.toggle('hidden');
+        },
+
+        toggleCockpit: () => {
+            const cp = document.getElementById('cockpit-view');
+            cp.style.display = cp.style.display === 'flex' ? 'none' : 'flex';
+        }
+    };
+    
+    // --- 5. EXPORT ---
+    const io = {
+        exportReport: () => {
+            if(App.connections.length === 0) { ui.showToast("暂无数据可导出"); return; }
+            const win = window.open('', '_blank');
+            const rows = App.connections.map(c => `<tr><td>${c.from}</td><td>${c.to}</td><td>${c.type}</td><td>$${c.cost.toFixed(0)}</td></tr>`).join('');
+            win.document.write(`<html><head><title>物流分析报告</title><style>body{font-family:'微软雅黑',sans-serif; padding:20px;} table{width:100%; border-collapse:collapse;} td,th{border:1px solid #ddd; padding:8px; text-align:left;} th{background-color:#f2f2f2;}</style></head><body><h1>全球物流网络分析报告</h1><table><tr><th>起点 (From)</th><th>终点 (To)</th><th>类型 (Type)</th><th>预估成本 (Cost)</th></tr>${rows}</table></body></html>`);
+            win.document.close();
+        }
+    };
+
+    // Run
+    initSystem();
+
+</script>
+</body>
+</html>

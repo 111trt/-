@@ -1,0 +1,11 @@
+version: '3'
+services:
+  logiglobe-pro:
+    build: .
+    image: logiglobe-pro:latest
+    container_name: logiglobe-pro
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./html:/usr/share/nginx/html

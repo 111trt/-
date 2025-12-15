@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiGlobe Pro - 寰球智运规划平台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --neon-blue: #00d2ff; --neon-pink: #ff3366; --neon-green: #00ff99; --bg-dark: #050a14; --panel-bg: rgba(5, 10, 20, 0.92); }
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Rajdhani', 'Segoe UI', sans-serif; background: #000; color: #fff; }
+        #app { position: relative; width: 100vw; height: 100vh; }
+        
+        /* INTRO */
+        #intro-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 1s; }
+        #intro-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2001; background: radial-gradient(circle at center, #0b1026 0%, #000000 100%); }
+        .intro-content { z-index: 2002; text-align: center; pointer-events: none; animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 5rem; text-transform: uppercase; letter-spacing: 0.8rem; margin: 0; background: linear-gradient(to bottom, #ffffff, var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 210, 255, 0.5); }
+        .subtitle { font-size: 1.5rem; color: #aaccff; margin-bottom: 4rem; letter-spacing: 0.3rem; text-transform: uppercase; }
+        #enter-btn { pointer-events: auto; padding: 15px 50px; font-size: 1.2rem; background: rgba(0, 210, 255, 0.1); color: var(--neon-blue); border: 2px solid var(--neon-blue); box-shadow: 0 0 20px rgba(0, 210, 255, 0.2); cursor: pointer; transition: all 0.3s; font-family: 'Orbitron', sans-serif; letter-spacing: 2px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+        #enter-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 40px var(--neon-blue); }
+        
+        /* MAP */
+        #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0; transition: opacity 1s; }
+        #ui-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; display: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); background-size: 100% 4px; }
+        
+        /* MAIN UI CONTAINER - FIX Z-INDEX */
+        #main-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; pointer-events: none; }
+
+        /* PANELS */
+        .ui-panel { background: var(--panel-bg); backdrop-filter: blur(10px); border: 1px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 15px rgba(0, 210, 255, 0.05); pointer-events: auto; position: absolute; color: #eee; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); }
+        .top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,20,40,0.6) 100%); border-bottom: 1px solid var(--neon-blue); clip-path: none; z-index: 1100; pointer-events: auto; box-sizing: border-box; }
+        .logo-small { font-family: 'Orbitron'; font-weight: 900; font-size: 1.2rem; color: #fff; text-shadow: 0 0 10px var(--neon-blue); }
+        .status-badge { font-size: 0.9rem; color: var(--neon-green); border: 1px solid var(--neon-green); padding: 2px 8px; border-radius: 2px; margin-left: 15px; }
+        .back-btn { background: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink); padding: 5px 15px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; transition: 0.3s; }
+        .back-btn:hover { background: var(--neon-pink); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
+        
+        /* SIDEBAR */
+        .sidebar-container { position: absolute; top: 80px; left: 20px; bottom: 340px; width: 260px; pointer-events: none; display: flex; flex-direction: column; z-index: 1050; overflow-y: auto; }
+        .sidebar { position: relative; width: 100%; padding: 15px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; box-sizing: border-box; }
+        .tool-group h3 { font-size: 0.8rem; color: var(--neon-blue); border-bottom: 1px solid rgba(0,210,255,0.3); padding-bottom: 5px; margin: 0 0 10px 0; letter-spacing: 1px; }
+        .tool-btn { width: 100%; background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); color: #aaccff; padding: 10px; cursor: pointer; text-align: left; margin-bottom: 5px; transition: 0.2s; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
+        .tool-btn:hover { background: rgba(0, 210, 255, 0.15); border-color: var(--neon-blue); color: #fff; }
+        .tool-btn.active { background: rgba(0, 210, 255, 0.3); border-color: var(--neon-blue); color: #fff; box-shadow: 0 0 10px rgba(0, 210, 255, 0.2); }
+        .tool-btn.disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+        .tool-icon { width: 20px; text-align: center; }
+        
+        /* MODALS */
+        .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: center; }
+        .modal { width: 500px; background: #0b101a; border: 1px solid var(--neon-blue); padding: 30px; position: relative; box-shadow: 0 0 50px rgba(0, 210, 255, 0.2); clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); }
+        .modal h2 { margin-top: 0; color: var(--neon-blue); border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; color: #888; margin-bottom: 5px; font-size: 0.9rem; }
+        .form-control { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #333; color: #fff; padding: 10px; font-family: 'Rajdhani'; font-size: 1rem; box-sizing: border-box; }
+        .form-control:focus { border-color: var(--neon-blue); outline: none; }
+        select.form-control { background: #050a14; color: #aaccff; border-color: rgba(0,210,255,0.4); }
+        select.form-control option { background: #050a14; color: #aaccff; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-primary { background: var(--neon-blue); color: #000; border: none; padding: 10px 25px; font-weight: bold; cursor: pointer; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); }
+        .btn-cancel { background: transparent; color: #888; border: 1px solid #888; padding: 10px 25px; cursor: pointer; }
+        .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .plan-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 15px; cursor: pointer; transition: 0.2s; }
+        .plan-card:hover { border-color: var(--neon-blue); background: rgba(0, 210, 255, 0.1); }
+        .plan-head { font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .plan-detail { font-size: 0.9rem; color: #aaa; display: flex; justify-content: space-between; margin-top: 3px; }
+        .toast { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(0, 210, 255, 0.9); color: #000; padding: 10px 30px; font-weight: bold; z-index: 4000; display: none; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); box-shadow: 0 0 20px var(--neon-blue); }
+        
+        /* COCKPIT */
+        #cockpit-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2500; background: #050a14; display: none; flex-direction: column; background-image: linear-gradient(rgba(0, 210, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 210, 255, 0.03) 1px, transparent 1px); background-size: 50px 50px; }
+        .cockpit-grid { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 20px; padding: 20px; flex: 1; }
+        .cp-panel { background: rgba(10, 20, 30, 0.8); border: 1px solid rgba(0, 210, 255, 0.3); padding: 20px; }
+        .bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 150px; }
+        .bar { flex: 1; background: var(--neon-blue); opacity: 0.6; transition: height 0.5s; }
+
+        /* CYBER NODE MARKER */
+        .cyber-node {
+            width: 20px; height: 20px; background: var(--neon-blue); border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+            position: relative; animation: pulse 2s infinite;
+        }
+        .cyber-node::after {
+            content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border: 1px solid var(--neon-blue); border-radius: 50%; opacity: 0; animation: ripple 2s infinite;
+        }
+        .cyber-node.level-1 { width: 30px; height: 30px; background: var(--neon-pink); box-shadow: 0 0 15px var(--neon-pink); }
+        .cyber-node.level-1::after { border-color: var(--neon-pink); }
+        .cyber-node.level-3 { width: 15px; height: 15px; border-radius: 2px; background: #FFD700; box-shadow: 0 0 10px #FFD700; }
+        .cyber-node.level-3::after { border-radius: 2px; border-color: #FFD700; }
+        .cyber-node:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px var(--neon-blue), 0 0 30px rgba(0,210,255,0.8);
+        }
+        
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+        @keyframes ripple { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+
+        .param-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 320px;
+            max-height: calc(100% - 120px);
+            overflow-y: auto;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        .param-title {
+            font-size: 0.9rem;
+            color: var(--neon-blue);
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
+        }
+        .param-section {
+            border-top: 1px solid rgba(0,210,255,0.3);
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .param-row {
+            margin-bottom: 10px;
+        }
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #aaccff;
+            margin-bottom: 4px;
+        }
+        .param-default {
+            font-size: 0.7rem;
+            color: #777;
+        }
+        .param-slider {
+            width: 100%;
+        }
+        .param-value {
+            font-size: 0.8rem;
+            color: #fff;
+            margin-top: 2px;
+        }
+        .param-reset {
+            border: 1px solid rgba(0,210,255,0.5);
+            background: transparent;
+            color: #aaccff;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+        .param-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+        }
+    </style>
+    
+    <script src="js/three.min.js"></script>
+    <script type="text/javascript">window._AMapSecurityConfig = { securityJsCode: '3c1e92c638ba2d5ac175ac5ec49928fd' }</script>
+    <!-- Use HTTPS for AMap -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=fc4cff1c140271ad4b1479b2cd3ff216&plugin=AMap.MoveAnimation,AMap.BezierCurve,AMap.GeometryUtil"></script>
+</head>
+<body>
+<div id="app">
+    <!-- Intro -->
+    <div id="intro-layer">
+        <div id="intro-canvas"></div>
+        <div class="intro-content">
+            <h1>寰球智运 PRO</h1>
+            <p class="subtitle">未来物流数字孪生系统 V2.0</p>
+            <button id="enter-btn">启动系统 (INITIALIZE)</button>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div id="map-container"></div>
+    <div id="ui-overlay"></div>
+    <div id="toast" class="toast">系统消息</div>
+
+    <!-- UI Overlay (Main) -->
+    <div id="main-ui" style="display:none;">
+        <div class="top-bar">
+            <div style="display:flex; align-items:center;">
+                <div class="logo-small">LOGIGLOBE PRO</div>
+                <div class="status-badge">系统在线</div>
+                <div class="status-badge" style="border-color:var(--neon-blue); color:var(--neon-blue);">AI 引擎激活</div>
+            </div>
+            <button class="back-btn" onclick="systemExit()">退出系统</button>
+        </div>
+
+        <div class="sidebar-container">
+            <div class="sidebar ui-panel">
+                <div class="tool-group">
+                    <h3>流程控制 (FLOW)</h3>
+                    <div class="tool-btn active" id="btn-phase-1" onclick="ui.setPhase(1)"><span class="tool-icon">①</span> 阶段一 · 网络搭建</div>
+                    <div class="tool-btn" id="btn-phase-2" onclick="ui.setPhase(2)"><span class="tool-icon">②</span> 阶段二 · AI 规划</div>
+                </div>
+                <div class="tool-group">
+                    <h3>阶段一 · 网络搭建</h3>
+                    <div class="tool-btn" id="btn-add" onclick="ui.setMode('addNode')"><span class="tool-icon">+</span> 添加节点</div>
+                    <div class="tool-btn" id="btn-connect" onclick="ui.setMode('connect')"><span class="tool-icon">∞</span> 建立连接</div>
+                    <div class="tool-btn" id="btn-mode-fanout" onclick="ui.setConnectMode('fanout')"><span class="tool-icon">⊙</span> 起点固定连线</div>
+                    <div class="tool-btn" id="btn-mode-chain" onclick="ui.setConnectMode('chain')"><span class="tool-icon">⇢</span> 接力连线模式</div>
+                </div>
+                <div class="tool-group">
+                    <h3>阶段二 · AI 规划与仿真</h3>
+                    <div class="tool-btn phase2-only" id="btn-ai-plan" onclick="ui.openPlanObjectiveModal()"><span class="tool-icon">🧭</span> 最优路径规划</div>
+                    <div class="tool-btn phase2-only" id="btn-ai-play" onclick="logic.playPlanAnimation()"><span class="tool-icon">▶</span> AI 路径演示</div>
+                </div>
+                <div class="tool-group">
+                    <h3>突发事件 (EVENTS)</h3>
+                    <div class="tool-btn phase2-only" id="btn-event-sim" onclick="logic.simulateEvent()"><span class="tool-icon">!</span> 触发突发事件模拟</div>
+                </div>
+                <div class="tool-group">
+                    <h3>参数配置 (CONFIG)</h3>
+                    <div class="tool-btn" onclick="ui.toggleParamPanel()"><span class="tool-icon">⚙️</span> 打开参数面板</div>
+                    <div class="tool-btn" onclick="logic.clearAll()"><span class="tool-icon">🗑️</span> 重置系统</div>
+                </div>
+                <div class="tool-group">
+                    <h3>数据与输出 (I/O)</h3>
+                    <div class="tool-btn phase2-only" id="btn-cockpit" onclick="ui.toggleCockpit()"><span class="tool-icon">🖥️</span> 全屏控制塔</div>
+                    <div class="tool-btn phase2-only" id="btn-export" onclick="io.exportReport()"><span class="tool-icon">📊</span> 导出分析报告</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+    <!-- 1. Add Node Modal -->
+    <div id="modal-add-node" class="modal-overlay">
+        <div class="modal">
+            <h2>添加物流节点 (Add Node)</h2>
+            <div class="form-group">
+                <label>节点名称 (Name)</label>
+                <input type="text" id="node-name" class="form-control" placeholder="例如: 上海港">
+            </div>
+            <div class="form-group">
+                <label>所属区域 (Region)</label>
+                <select id="node-region" class="form-control">
+                    <option value="CN">中国区 (CN)</option>
+                    <option value="US">北美区 (US)</option>
+                    <option value="EU">欧洲区 (EU)</option>
+                    <option value="ASEAN">东南亚 (ASEAN)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>节点等级 (Level)</label>
+                <select id="node-level" class="form-control">
+                    <option value="1">Level 1 - 全球核心枢纽 (常驻显示)</option>
+                    <option value="2">Level 2 - 区域中心</option>
+                    <option value="3">Level 3 - 地方站点</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="ui.closeModals()">取消</button>
+                <button class="btn-primary" onclick="ui.confirmAddNode()">确认添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Route Plan Modal -->
+    <div id="modal-plan" class="modal-overlay">
+        <div class="modal" style="width: 700px;">
+            <h2>AI 路径规划方案 (Routing Options)</h2>
+            <p id="plan-desc" style="color:#aaa; margin-bottom: 20px;">正在分析连接可行性...</p>
+            
+            <div class="plan-grid">
+                <div class="plan-card" onclick="logic.planOptimalPath('time')">
+                    <div class="plan-head"><span style="color:#3366FF">⏱ 时间优先 (FASTEST)</span></div>
+                    <div class="plan-detail"><span>目标: 总运输时间最短</span> <span>适合: 紧急订单</span></div>
+                </div>
+                <div class="plan-card" onclick="logic.planOptimalPath('cost')">
+                    <div class="plan-head"><span style="color:#00FFFF">💰 成本优先 (CHEAPEST)</span></div>
+                    <div class="plan-detail"><span>目标: 总成本最低</span> <span>适合: 成本敏感</span></div>
+                </div>
+                <div class="plan-card" onclick="logic.planOptimalPath('co2')">
+                    <div class="plan-head"><span style="color:#00ff99">🌱 低碳优先 (GREEN)</span></div>
+                    <div class="plan-detail"><span>目标: 碳排放最少</span> <span>适合: ESG 场景</span></div>
+                </div>
+                <div class="plan-card" onclick="logic.planOptimalPath('balanced')">
+                    <div class="plan-head"><span style="color:#ccc">⚖ 综合平衡 (BALANCED)</span></div>
+                    <div class="plan-detail"><span>目标: 时间/成本/碳排折中</span> <span>适合: 日常运营</span></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="ui.closeModals()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Cockpit -->
+    <div id="cockpit-view">
+        <div class="top-bar">
+            <div class="logo-small">指挥中心 (COMMAND CENTER)</div>
+            <button class="back-btn" onclick="ui.toggleCockpit()">关闭视图</button>
+        </div>
+        <div class="cockpit-grid">
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">系统状态 (SYSTEM STATUS)</h3>
+                <div style="margin-top:20px; font-size: 1.2rem;">
+                    <div>服务器负载: <span style="color:var(--neon-green)">12%</span></div>
+                    <div>API 延迟: <span style="color:var(--neon-green)">45ms</span></div>
+                    <div>在线 Agent: <span style="color:var(--neon-blue)">4</span></div>
+                </div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">全球运力热度 (TRAFFIC)</h3>
+                <div class="bar-chart" id="cp-chart">
+                    <div class="bar" style="height:30%"></div>
+                    <div class="bar" style="height:50%"></div>
+                    <div class="bar" style="height:80%"></div>
+                    <div class="bar" style="height:40%"></div>
+                    <div class="bar" style="height:60%"></div>
+                    <div class="bar" style="height:90%"></div>
+                </div>
+                <div style="margin-top:20px; color:#aaa; font-size:0.9rem;">
+                    AI 分析: 全球主航道通行状况良好，苏伊士运河无拥堵。
+                </div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">财务概览 (FINANCIALS)</h3>
+                <div style="font-size: 3rem; color:#fff; font-weight:bold; margin-top:20px;" id="cp-total-cost">$0</div>
+                <div style="color:#888;">累计运营成本 (Cumulative)</div>
+                <div style="font-size: 1.4rem; color:var(--neon-blue); font-weight:bold; margin-top:20px;" id="cp-total-time">0h</div>
+                <div style="color:#888;">累计运输时间 (Transit Time)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="param-panel" class="ui-panel param-panel" style="display:none;">
+        <h3 class="param-title">参数面板 (Parameters)</h3>
+        <div class="param-section">
+            <div class="param-label">
+                <span>公路 (ROAD) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-road-speed"></span></span>
+            </div>
+            <input id="param-road-speed" class="param-slider" type="range" min="20" max="120" step="5" oninput="ui.updateParamSlider('road-speed', this)">
+            <div class="param-value" id="val-road-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('road-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>公路 (ROAD) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-road-cost"></span></span>
+            </div>
+            <input id="param-road-cost" class="param-slider" type="range" min="0.5" max="5" step="0.1" oninput="ui.updateParamSlider('road-cost', this)">
+            <div class="param-value" id="val-road-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('road-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>公路 (ROAD) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-road-co2"></span></span>
+            </div>
+            <input id="param-road-co2" class="param-slider" type="range" min="0.01" max="0.2" step="0.005" oninput="ui.updateParamSlider('road-co2', this)">
+            <div class="param-value" id="val-road-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('road-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>铁路 (RAIL) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-rail-speed"></span></span>
+            </div>
+            <input id="param-rail-speed" class="param-slider" type="range" min="40" max="120" step="5" oninput="ui.updateParamSlider('rail-speed', this)">
+            <div class="param-value" id="val-rail-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('rail-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>铁路 (RAIL) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-rail-cost"></span></span>
+            </div>
+            <input id="param-rail-cost" class="param-slider" type="range" min="0.2" max="3" step="0.1" oninput="ui.updateParamSlider('rail-cost', this)">
+            <div class="param-value" id="val-rail-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('rail-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>铁路 (RAIL) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-rail-co2"></span></span>
+            </div>
+            <input id="param-rail-co2" class="param-slider" type="range" min="0.005" max="0.1" step="0.005" oninput="ui.updateParamSlider('rail-co2', this)">
+            <div class="param-value" id="val-rail-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('rail-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>海运 (SEA) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-sea-speed"></span></span>
+            </div>
+            <input id="param-sea-speed" class="param-slider" type="range" min="10" max="60" step="2" oninput="ui.updateParamSlider('sea-speed', this)">
+            <div class="param-value" id="val-sea-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('sea-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>海运 (SEA) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-sea-cost"></span></span>
+            </div>
+            <input id="param-sea-cost" class="param-slider" type="range" min="0.05" max="1" step="0.05" oninput="ui.updateParamSlider('sea-cost', this)">
+            <div class="param-value" id="val-sea-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('sea-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>海运 (SEA) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-sea-co2"></span></span>
+            </div>
+            <input id="param-sea-co2" class="param-slider" type="range" min="0.005" max="0.1" step="0.005" oninput="ui.updateParamSlider('sea-co2', this)">
+            <div class="param-value" id="val-sea-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('sea-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>空运 (AIR) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-air-speed"></span></span>
+            </div>
+            <input id="param-air-speed" class="param-slider" type="range" min="400" max="1000" step="20" oninput="ui.updateParamSlider('air-speed', this)">
+            <div class="param-value" id="val-air-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('air-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>空运 (AIR) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-air-cost"></span></span>
+            </div>
+            <input id="param-air-cost" class="param-slider" type="range" min="1" max="15" step="0.5" oninput="ui.updateParamSlider('air-cost', this)">
+            <div class="param-value" id="val-air-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('air-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>空运 (AIR) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-air-co2"></span></span>
+            </div>
+            <input id="param-air-co2" class="param-slider" type="range" min="0.1" max="1.0" step="0.05" oninput="ui.updateParamSlider('air-co2', this)">
+            <div class="param-value" id="val-air-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('air-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>跨境固定关税成本 (USD)</span>
+                <span class="param-default">默认: <span id="def-tariff-cost"></span></span>
+            </div>
+            <input id="param-tariff-cost" class="param-slider" type="range" min="0" max="2000" step="50" oninput="ui.updateParamSlider('tariff-cost', this)">
+            <div class="param-value" id="val-tariff-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('tariff-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>跨境额外时间 (小时)</span>
+                <span class="param-default">默认: <span id="def-tariff-delay"></span></span>
+            </div>
+            <input id="param-tariff-delay" class="param-slider" type="range" min="0" max="72" step="2" oninput="ui.updateParamSlider('tariff-delay', this)">
+            <div class="param-value" id="val-tariff-delay"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('tariff-delay')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>关税突发事件成本放大倍数</span>
+                <span class="param-default">默认: <span id="def-event-tariff"></span></span>
+            </div>
+            <input id="param-event-tariff" class="param-slider" type="range" min="1" max="3" step="0.1" oninput="ui.updateParamSlider('event-tariff', this)">
+            <div class="param-value" id="val-event-tariff"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('event-tariff')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-actions">
+            <button class="param-reset" onclick="ui.resetAllParams()">全部恢复默认</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- APP CORE ---
+    const App = {
+        map: null,
+        nodes: [],
+        routes: [],
+        connections: [],
+        state: {
+            mode: 'view',
+            tempStart: null,
+            planStart: null,
+            planEnd: null,
+            lastPlanRoutes: [],
+            phase: 1,
+            connectMode: 'fanout',
+            currentLineType: '1',
+            routeCounts: {},
+            stats: { cost: 0, co2: 0, dist: 0, time: 0 },
+            params: {
+                transport: {
+                    road: { speed: 60, cost: 2, co2: 0.05 },
+                    sea: { speed: 35, cost: 0.5, co2: 0.08 },
+                    air: { speed: 800, cost: 8, co2: 0.5 },
+                    rail: { speed: 80, cost: 1, co2: 0.02 }
+                },
+                tariff: {
+                    crossBorderCost: 500,
+                    crossBorderDelayH: 12
+                },
+                events: {
+                    tariffSpikeFactor: 1.2
+                }
+            },
+            backendBaseUrl: 'http://localhost:3001'
+        }
+    };
+
+    const DefaultParams = JSON.parse(JSON.stringify(App.state.params));
+
+    // --- 1. INITIALIZATION ---
+    function initSystem() {
+        initGlobe();
+        const btn = document.getElementById('enter-btn');
+        btn.addEventListener('click', () => {
+            btn.innerText = "系统加载中...";
+            setTimeout(() => initMap(), 500);
+        });
+    }
+
+    function initGlobe() {
+        const container = document.getElementById('intro-canvas');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.z = 15;
+        const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        const geom = new THREE.BufferGeometry();
+        const pos = [];
+        for(let i=0; i<2500; i++) {
+            const phi = Math.acos(-1 + (2*i)/2500);
+            const theta = Math.sqrt(2500 * Math.PI) * phi;
+            pos.push(6 * Math.cos(theta) * Math.sin(phi), 6 * Math.sin(theta) * Math.sin(phi), 6 * Math.cos(phi));
+        }
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        const globe = new THREE.Points(geom, new THREE.PointsMaterial({color: 0x00d2ff, size: 0.12}));
+        scene.add(globe);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            globe.rotation.y += 0.003;
+            renderer.render(scene, camera);
+        }
+        animate();
+    }
+
+    function initMap() {
+        // Fallback: If AMap is undefined, show error but try to show UI
+        if(typeof AMap === 'undefined') { 
+            alert("高德地图加载失败 (AMap Load Failed)。\n请检查网络连接或安全密钥配置。\n系统将尝试进入无地图模式。");
+            forceShowUI();
+            return; 
+        }
+        
+        try {
+            App.map = new AMap.Map('map-container', {
+                viewMode: '3D', zoom: 3, center: [116.39, 39.9], mapStyle: 'amap://styles/darkblue'
+            });
+
+            // Context Menu for Map Background (Add Node)
+            const mapContextMenu = new AMap.ContextMenu();
+            mapContextMenu.addItem("在此处添加节点 (Add Node Here)", (e) => {
+                 App.state.tempCoords = App.state.lastRightClickLngLat;
+                 ui.openAddNodeModal(true);
+            }, 0);
+            
+            App.map.on('rightclick', (e) => {
+                App.state.lastRightClickLngLat = e.lnglat;
+                mapContextMenu.open(App.map, e.lnglat);
+            });
+
+            App.map.on('complete', () => {
+                console.log("Map load complete");
+                transitionToMain();
+            });
+            
+            App.map.on('click', (e) => {
+                if(App.state.mode === 'addNode') {
+                    App.state.tempCoords = e.lnglat;
+                    ui.openAddNodeModal(true);
+                }
+            });
+
+            // Safety net: Force show UI after 3 seconds even if 'complete' event fails
+            setTimeout(() => {
+                if(document.getElementById('main-ui').style.display === 'none' || document.getElementById('main-ui').style.display === '') {
+                    console.warn("Map complete event timeout, forcing UI transition");
+                    transitionToMain();
+                }
+            }, 3000);
+
+        } catch (e) {
+            console.error("Map Init Error:", e);
+            alert("地图初始化异常: " + e.message);
+            forceShowUI();
+        }
+    }
+
+    function transitionToMain() {
+        document.getElementById('intro-layer').style.opacity = 0;
+        document.getElementById('map-container').style.opacity = 1;
+        document.getElementById('ui-overlay').style.display = 'block';
+        setTimeout(() => {
+            document.getElementById('intro-layer').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'block';
+            
+            // Try to add data only if map is valid
+            if(App.map) {
+                logic.addMockData();
+                App.map.on('zoomchange', logic.updateLOD);
+            }
+        }, 1000);
+    }
+
+    function forceShowUI() {
+        document.getElementById('intro-layer').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        document.getElementById('map-container').style.background = '#050a14'; // Fallback bg
+        document.getElementById('map-container').style.opacity = 1;
+        document.getElementById('map-container').innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#333;">Map Unavailable</div>';
+    }
+
+    function systemExit() {
+        document.getElementById('main-ui').style.display = 'none';
+        document.getElementById('map-container').style.opacity = 0;
+        document.getElementById('intro-layer').style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('intro-layer').style.opacity = 1;
+            document.getElementById('enter-btn').innerText = "重新启动系统 (RE-INITIALIZE)";
+            if(App.map) {
+                App.map.clearMap();
+                App.map.destroy();
+            }
+            if(App.state.simInterval) {
+                clearInterval(App.state.simInterval);
+                App.state.simInterval = null;
+            }
+            App.map = null;
+            App.nodes = [];
+            App.routes = [];
+            App.connections = [];
+            App.state.routeCounts = {};
+            App.state.tempStart = null;
+            App.state.pendingPlan = null;
+            App.state.stats = { cost: 0, co2: 0, dist: 0, time: 0 };
+        }, 1000);
+    }
+
+    // --- 2. LOGIC CONTROLLER ---
+    const logic = {
+        addNode: (name, pos, level, region) => {
+            // FIX: Use Custom Content Marker to avoid file:// error and enhance visuals
+            const isHub = level == 1;
+            // Level 3 specific icon (Warehouse) vs Level 1/2 (Hub)
+            let nodeClass = 'cyber-node';
+            if(level == 1) nodeClass += ' level-1';
+            if(level == 3) nodeClass += ' level-3'; // New class for warehouse
+            
+            const content = `<div class="${nodeClass}"></div>`;
+            
+            const marker = new AMap.Marker({
+                position: pos,
+                content: content,
+                offset: new AMap.Pixel(isHub ? -15 : -10, isHub ? -15 : -10),
+                extData: { name, level, region },
+                zIndex: 100
+            });
+            
+            // Cyber Label
+            marker.setLabel({
+                offset: new AMap.Pixel(0, 0),
+                content: `<div style="color:#fff; font-family:'Rajdhani'; font-weight:bold; font-size:12px; background:rgba(0,0,0,0.7); padding:4px 8px; border:1px solid #00d2ff; border-radius:4px; margin-top:15px; box-shadow:0 0 10px #00d2ff;">${name}</div>`,
+                direction: 'bottom'
+            });
+
+            marker.on('click', () => logic.handleNodeClick(marker));
+            marker.on('rightclick', (e) => {
+                 // Prevent default browser menu
+                 // But AMap rightclick event object is different, usually we don't need preventDefault on map event
+                 logic.showContextMenu(marker, e);
+            });
+
+            App.map.add(marker);
+            App.nodes.push(marker);
+            logic.updateLOD();
+            ui.updateStats();
+        },
+
+        showContextMenu: (marker, e) => {
+            const contextMenu = new AMap.ContextMenu();
+            contextMenu.addItem("删除节点 (Delete)", () => logic.deleteNode(marker), 0);
+            contextMenu.addItem("设为起点 (Set Start)", () => {
+                App.state.tempStart = marker;
+                ui.setMode('connect');
+                ui.showToast(`已设为起点: ${marker.getExtData().name}`);
+            }, 1);
+            contextMenu.addItem("设为规划起点 (Plan Start)", () => {
+                App.state.planStart = marker;
+                ui.showToast(`AI 规划起点: ${marker.getExtData().name}`);
+            }, 2);
+            contextMenu.addItem("设为规划终点 (Plan End)", () => {
+                App.state.planEnd = marker;
+                ui.showToast(`AI 规划终点: ${marker.getExtData().name}`);
+            }, 3);
+            contextMenu.open(App.map, marker.getPosition());
+        },
+
+        deleteNode: (marker) => {
+            if(confirm(`确认删除节点: ${marker.getExtData().name}?`)) {
+                App.map.remove(marker);
+                App.nodes = App.nodes.filter(n => n !== marker);
+                ui.showToast("节点已删除");
+                ui.updateStats();
+            }
+        },
+
+
+        handleNodeClick: (marker) => {
+            if (App.state.mode === 'connect') {
+                if (!App.state.tempStart) {
+                    App.state.tempStart = marker;
+                    ui.showToast(`已选择起点: ${marker.getExtData().name}`);
+                } else {
+                    if (App.state.tempStart === marker) return;
+                    const start = App.state.tempStart;
+                    const end = marker;
+                    logic.createConnection(start, end);
+                    if (App.state.connectMode === 'chain') {
+                        App.state.tempStart = end;
+                    }
+                }
+            }
+        },
+
+        createConnection: (start, end) => {
+            const type = App.state.currentLineType || '1';
+            let color = '#fff';
+            let style = 'solid';
+            if(type === '1') { color = '#3366FF'; }
+            if(type === '2') { color = '#00FFFF'; style='dashed'; }
+            if(type === '3') { color = '#FF00FF'; }
+            if(type === '4') { color = '#ccc'; style='dashed'; }
+
+            const s = start.getPosition();
+            const e = end.getPosition();
+            const key = [start.getExtData().name, end.getExtData().name].sort().join('-');
+            App.state.routeCounts[key] = (App.state.routeCounts[key] || 0) + 1;
+            const offsetIdx = App.state.routeCounts[key] - 1;
+
+            const route = visuals.drawConnection(s, e, color, style, type, offsetIdx);
+            
+            const distKm = AMap.GeometryUtil.distance(s, e) / 1000;
+            let cost = 0, co2 = 0, hours = 0;
+            const tp = App.state.params.transport;
+            if(type==='1') { cost=distKm*tp.road.cost; co2=distKm*tp.road.co2; hours = distKm/Math.max(tp.road.speed, 1); }
+            if(type==='2') { cost=distKm*tp.sea.cost; co2=distKm*tp.sea.co2; hours = distKm/Math.max(tp.sea.speed, 1); }
+            if(type==='3') { cost=distKm*tp.air.cost; co2=distKm*tp.air.co2; hours = distKm/Math.max(tp.air.speed, 1); }
+            if(type==='4') { cost=distKm*tp.rail.cost; co2=distKm*tp.rail.co2; hours = distKm/Math.max(tp.rail.speed, 1); }
+            
+            const fromR = start.getExtData().region;
+            const toR = end.getExtData().region;
+            if(fromR !== toR) { 
+                cost += App.state.params.tariff.crossBorderCost; 
+                hours += App.state.params.tariff.crossBorderDelayH; 
+                visuals.addCustomsPointBetween(s, e); 
+            }
+
+            App.state.stats.cost += cost;
+            App.state.stats.co2 += co2;
+            App.state.stats.time += hours;
+            route._fromName = start.getExtData().name;
+            route._toName = end.getExtData().name;
+            route._hours = hours;
+            route._cost = cost;
+            route._co2 = co2;
+            route._distKm = distKm;
+            App.connections.push({ from: start.getExtData().name, to: end.getExtData().name, type, cost, co2, hours, distKm, route });
+
+            ui.updateStats();
+            ui.showToast("线路建立成功");
+        },
+
+        autoRoute: () => {
+            if(App.nodes.length < 2) return;
+            ui.showToast("AI 正在计算最优分级网络拓扑 (L3->L2->L1)...");
+            
+            // Clear existing routes to avoid mess
+            App.routes.forEach(r => App.map.remove(r));
+            App.routes = [];
+            App.connections = [];
+            App.state.stats = { cost: 0, co2: 0, dist: 0, time: 0 };
+            App.state.routeCounts = {};
+
+            const hubs = App.nodes.filter(n => n.getExtData().level == 1);
+            const regionals = App.nodes.filter(n => n.getExtData().level == 2);
+            const locals = App.nodes.filter(n => n.getExtData().level == 3);
+
+            // 1. Level 3 (Local) -> Nearest Level 2 (Regional)
+            locals.forEach(l => {
+                let nearest = null;
+                let minD = Infinity;
+                regionals.forEach(r => {
+                    // Constraint: Must be same region if possible, or just nearest
+                    if(l.getExtData().region === r.getExtData().region) {
+                        const d = AMap.GeometryUtil.distance(l.getPosition(), r.getPosition());
+                        if(d < minD) { minD = d; nearest = r; }
+                    }
+                });
+                // Fallback to any regional if no same region
+                if(!nearest) {
+                     regionals.forEach(r => {
+                        const d = AMap.GeometryUtil.distance(l.getPosition(), r.getPosition());
+                        if(d < minD) { minD = d; nearest = r; }
+                    });
+                }
+                
+                if(nearest) {
+                    visuals.drawConnection(l.getPosition(), nearest.getPosition(), '#ccc', 'dashed', '1', 0); // Road
+                    logic.recordStat(l, nearest, '1', minD);
+                }
+            });
+
+            // 2. Level 2 (Regional) -> Nearest Level 1 (Global Hub)
+            regionals.forEach(r => {
+                let nearest = null;
+                let minD = Infinity;
+                hubs.forEach(h => {
+                    const d = AMap.GeometryUtil.distance(r.getPosition(), h.getPosition());
+                    if(d < minD) { minD = d; nearest = h; }
+                });
+                if(nearest) {
+                    visuals.drawConnection(r.getPosition(), nearest.getPosition(), '#3366FF', 'solid', '1', 0); // Road/Rail
+                    logic.recordStat(r, nearest, '1', minD);
+                }
+            });
+
+            // 3. Level 1 (Global) Interconnect (MST-like or Hub-and-Spoke)
+            // For demo: Connect key hubs based on region
+            const hubGroups = {};
+            hubs.forEach(h => {
+                const reg = h.getExtData().region;
+                if(!hubGroups[reg]) hubGroups[reg] = [];
+                hubGroups[reg].push(h);
+            });
+
+            // Connect hubs within same region
+            Object.values(hubGroups).forEach(group => {
+                for(let i=0; i<group.length-1; i++) {
+                    visuals.drawConnection(group[i].getPosition(), group[i+1].getPosition(), '#3366FF', 'solid', '4', 0); // Rail/Road
+                    const d = AMap.GeometryUtil.distance(group[i].getPosition(), group[i+1].getPosition());
+                    logic.recordStat(group[i], group[i+1], '4', d);
+                }
+            });
+
+            // Connect regions (Cross-border)
+            // CN <-> EU (Sea/Rail)
+            // CN <-> US (Sea/Air)
+            // US <-> EU (Air/Sea)
+            const findHub = (reg) => hubs.find(h => h.getExtData().region === reg);
+            const cnHub = findHub('CN'); // Shanghai/Beijing
+            const euHub = findHub('EU'); // London/Rotterdam
+            const usHub = findHub('US'); // LA/NY
+            
+            if(cnHub && euHub) {
+                visuals.drawConnection(cnHub.getPosition(), euHub.getPosition(), '#00FFFF', 'dashed', '2', 0); // Sea
+                logic.recordStat(cnHub, euHub, '2', 8000000); // Approx dist
+            }
+            if(cnHub && usHub) {
+                 visuals.drawConnection(cnHub.getPosition(), usHub.getPosition(), '#FF00FF', 'solid', '3', 0); // Air
+                 logic.recordStat(cnHub, usHub, '3', 10000000);
+            }
+            if(usHub && euHub) {
+                 visuals.drawConnection(usHub.getPosition(), euHub.getPosition(), '#FF00FF', 'solid', '3', 0); // Air
+                 logic.recordStat(usHub, euHub, '3', 6000000);
+            }
+
+            ui.updateStats();
+            ui.showToast("AI 网络拓扑优化完成 (Total Cost Optimized)");
+        },
+
+        recordStat: (n1, n2, type, dist) => {
+            const distKm = dist / 1000;
+            let cost = 0, co2 = 0, hours = 0;
+            const tp = App.state.params.transport;
+            if(type==='1') { cost=distKm*tp.road.cost; co2=distKm*tp.road.co2; hours = distKm/Math.max(tp.road.speed, 1); }
+            if(type==='2') { cost=distKm*tp.sea.cost; co2=distKm*tp.sea.co2; hours = distKm/Math.max(tp.sea.speed, 1); }
+            if(type==='3') { cost=distKm*tp.air.cost; co2=distKm*tp.air.co2; hours = distKm/Math.max(tp.air.speed, 1); }
+            if(type==='4') { cost=distKm*tp.rail.cost; co2=distKm*tp.rail.co2; hours = distKm/Math.max(tp.rail.speed, 1); }
+            
+            if(n1.getExtData().region !== n2.getExtData().region) {
+                cost += App.state.params.tariff.crossBorderCost;
+                hours += App.state.params.tariff.crossBorderDelayH;
+                visuals.addCustomsPointBetween(n1.getPosition(), n2.getPosition());
+            }
+
+            App.state.stats.cost += cost;
+            App.state.stats.co2 += co2;
+            App.state.stats.time += hours;
+            App.connections.push({ from: n1.getExtData().name, to: n2.getExtData().name, type, cost, co2, hours, distKm });
+        },
+
+        updateLOD: () => {
+            const zoom = App.map.getZoom();
+            App.nodes.forEach(n => {
+                const lvl = n.getExtData().level;
+                // Enhanced LOD: Scale markers based on zoom
+                // We cannot easily scale DOM markers, but we can show/hide
+                if(zoom < 4) { 
+                    lvl == 1 ? n.show() : n.hide(); 
+                } else if(zoom < 6) { 
+                    lvl <= 2 ? n.show() : n.hide(); 
+                } else { 
+                    n.show(); 
+                }
+            });
+        },
+
+        simulateEvent: () => {
+            // Tariff Simulation
+            const tariffNode = [105.0, 45.0]; // Mock border location
+            ui.showToast("⚡ 模拟启动: 关税政策突变与自然灾害检测...");
+            
+            setTimeout(() => {
+                ui.showToast("💰 关税预警: 跨区域运输成本临时增加 (Tariff Spike)");
+                App.state.stats.cost *= App.state.params.events.tariffSpikeFactor;
+                ui.updateStats();
+                document.getElementById('kpi-cost').style.color = '#ff3366'; // Red alert
+                setTimeout(() => document.getElementById('kpi-cost').style.color = 'var(--neon-blue)', 3000);
+            }, 1000);
+
+            // Typhoon Logic
+            // 1. Generate random location near East Asia (Mock)
+            const typhoonCenter = [125 + (Math.random()*10 - 5), 25 + (Math.random()*10 - 5)];
+            
+            const circle = new AMap.Circle({
+                center: typhoonCenter, radius: 500000,
+                strokeColor: "#F33", strokeWeight: 2, fillColor: "rgba(255,0,0,0.3)", zIndex: 999
+            });
+            App.map.add(circle);
+            ui.showToast(`警报: 坐标 [${typhoonCenter[0].toFixed(1)}, ${typhoonCenter[1].toFixed(1)}] 探测到台风活动!`);
+            
+            // 2. Check affected routes
+            let affectedCount = 0;
+            App.routes.forEach(route => {
+                // Simple check: distance from route start/end to typhoon center
+                // A better way is checking if path intersects, but start/end is good enough for mock
+                // Mock logic: assume any route near East Asia is affected
+                const path = route.getPath();
+                const start = path[0];
+                const end = path[path.length-1];
+                
+                const d1 = AMap.GeometryUtil.distance(start, typhoonCenter);
+                const d2 = AMap.GeometryUtil.distance(end, typhoonCenter);
+                
+                if (d1 < 2000000 || d2 < 2000000) { // If within 2000km range
+                    route.setOptions({ strokeColor: '#FF0000', strokeStyle: 'solid' }); // Turn RED
+                    affectedCount++;
+                }
+            });
+            
+            if (affectedCount > 0) {
+                 setTimeout(() => ui.showToast(`⚠️ ${affectedCount} 条航线受台风影响已红色预警，正在重规划...`), 2000);
+            }
+
+            // Flash Effect
+            let count = 0;
+            const interval = setInterval(() => {
+                count++;
+                circle.setOptions({ fillOpacity: count%2==0 ? 0.3 : 0.6 });
+                if(count > 10) { clearInterval(interval); App.map.remove(circle); }
+            }, 500);
+        },
+
+        planOptimalPath: (objective) => {
+            if(!App.state.planStart || !App.state.planEnd) {
+                ui.showToast("请先在节点上右键选择规划起点和终点");
+                return;
+            }
+            const startName = App.state.planStart.getExtData().name;
+            const endName = App.state.planEnd.getExtData().name;
+            if(startName === endName) {
+                ui.showToast("起点和终点不能相同");
+                return;
+            }
+            if(App.connections.length === 0) {
+                ui.showToast("当前网络没有任何连接，请先建立线路");
+                return;
+            }
+
+            const nodes = App.nodes.map(marker => {
+                const pos = marker.getPosition();
+                const ext = marker.getExtData() || {};
+                return {
+                    id: ext.name,
+                    name: ext.name,
+                    lng: pos.getLng(),
+                    lat: pos.getLat(),
+                    region: ext.region || 'CN'
+                };
+            });
+
+            const edges = [];
+            App.connections.forEach(c => {
+                const base = {
+                    from: c.from,
+                    to: c.to,
+                    mode: c.type,
+                    distanceKm: c.distKm
+                };
+                edges.push(base);
+                edges.push({
+                    from: c.to,
+                    to: c.from,
+                    mode: c.type,
+                    distanceKm: c.distKm
+                });
+            });
+
+            let objectiveApi = 'fast';
+            if(objective === 'time') objectiveApi = 'fast';
+            else if(objective === 'cost') objectiveApi = 'cheap';
+            else if(objective === 'co2') objectiveApi = 'green';
+            else if(objective === 'balanced') objectiveApi = 'balanced';
+
+            const payload = {
+                nodes,
+                edges,
+                originId: startName,
+                destinationId: endName,
+                objective: objectiveApi
+            };
+
+            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            ui.showToast("AI 正在请求后端计算最优路径...");
+
+            fetch(baseUrl + "/api/plan/route", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+            .then(({ ok, status, data }) => {
+                if(!ok) {
+                    ui.showToast(data && data.error ? data.error : ("后端计算失败, 状态码 " + status));
+                    return;
+                }
+                const legs = data.legs || [];
+                if(!legs.length) {
+                    ui.showToast("后端未返回可用路径");
+                    return;
+                }
+
+                App.state.lastPlanRoutes.forEach(r => visuals.setRouteActive(r, false));
+                const activeRoutes = [];
+                legs.forEach(leg => {
+                    const conn = App.connections.find(c =>
+                        (c.from === leg.fromId && c.to === leg.toId) ||
+                        (c.from === leg.toId && c.to === leg.fromId)
+                    );
+                    if(conn && conn.route) {
+                        visuals.setRouteActive(conn.route, true);
+                        activeRoutes.push(conn.route);
+                    }
+                });
+                App.state.lastPlanRoutes = activeRoutes;
+
+                if(data.summary) {
+                    App.state.stats = {
+                        cost: data.summary.totalCost || 0,
+                        co2: data.summary.totalCo2 || 0,
+                        dist: data.summary.totalDistanceKm || 0,
+                        time: data.summary.totalTimeHours || 0
+                    };
+                }
+                ui.updateStats();
+                ui.closeModals();
+                ui.showToast("AI 最优路径已计算完成");
+            })
+            .catch(err => {
+                console.error(err);
+                ui.showToast("无法连接后端服务，请检查后端是否启动");
+            });
+        },
+
+        getEdgeWeight: (edge, objective) => {
+            const time = edge.hours || 0;
+            const cost = edge.cost || 0;
+            const co2 = edge.co2 || 0;
+            if(objective === 'time') return time;
+            if(objective === 'cost') return cost;
+            if(objective === 'co2') return co2;
+            return time * 0.4 + cost * 0.4 + co2 * 0.2;
+        },
+
+        playPlanAnimation: () => {
+            if(!App.map || App.routes.length === 0) {
+                ui.showToast("暂无可演示的线路");
+                return;
+            }
+            let index = 0;
+            const total = App.routes.length;
+            const step = () => {
+                App.routes.forEach(r => visuals.setRouteActive(r, false));
+                const route = App.routes[index];
+                visuals.setRouteActive(route, true);
+                index += 1;
+                if(index < total) {
+                    setTimeout(step, 1200);
+                } else {
+                    setTimeout(() => {
+                        App.routes.forEach(r => visuals.setRouteActive(r, false));
+                    }, 1500);
+                }
+            };
+            ui.showToast("AI 分步骤路径演示开始");
+            step();
+        },
+
+        clearAll: () => {
+            App.map.clearMap();
+            App.nodes = [];
+            App.routes = [];
+            App.connections = [];
+            App.state.stats = { cost: 0, co2: 0, dist: 0, time: 0 };
+            App.state.routeCounts = {};
+            App.state.tempStart = null;
+            App.state.pendingPlan = null;
+            ui.updateStats();
+        },
+
+        addMockData: () => {
+            // Level 1: Global Hubs (Pink)
+            logic.addNode('北京枢纽 (Beijing)', [116.4, 39.9], 1, 'CN');
+            logic.addNode('上海港 (Shanghai)', [121.5, 31.2], 1, 'CN');
+            logic.addNode('东京枢纽 (Tokyo)', [139.7, 35.7], 1, 'ASEAN');
+            logic.addNode('新加坡 (Singapore)', [103.8, 1.3], 1, 'ASEAN');
+            logic.addNode('伦敦 (London)', [-0.1, 51.5], 1, 'EU');
+            logic.addNode('纽约 (New York)', [-74.0, 40.7], 1, 'US');
+            logic.addNode('洛杉矶 (Los Angeles)', [-118.2, 34.0], 1, 'US');
+            logic.addNode('迪拜 (Dubai)', [55.3, 25.2], 1, 'EU'); // Middle East mapped to EU region for demo
+            logic.addNode('法兰克福 (Frankfurt)', [8.6, 50.1], 1, 'EU');
+            logic.addNode('鹿特丹 (Rotterdam)', [4.4, 51.9], 1, 'EU');
+            logic.addNode('孟菲斯 (Memphis)', [-90.0, 35.1], 1, 'US');
+            logic.addNode('香港 (Hong Kong)', [114.1, 22.3], 1, 'CN');
+
+            // Level 2: Regional Centers (Blue)
+            logic.addNode('天津港 (Tianjin)', [117.2, 39.1], 2, 'CN');
+            logic.addNode('广州 (Guangzhou)', [113.2, 23.1], 2, 'CN');
+            logic.addNode('首尔 (Seoul)', [126.9, 37.5], 2, 'ASEAN');
+            logic.addNode('悉尼 (Sydney)', [151.2, -33.8], 2, 'ASEAN');
+            logic.addNode('巴黎 (Paris)', [2.3, 48.8], 2, 'EU');
+            logic.addNode('芝加哥 (Chicago)', [-87.6, 41.8], 2, 'US');
+
+            logic.addNode('义乌仓 (Yiwu)', [120.0, 29.3], 3, 'CN');
+            logic.addNode('东莞仓 (Dongguan)', [113.7, 23.0], 3, 'CN');
+            logic.addNode('汉堡仓 (Hamburg)', [9.9, 53.5], 3, 'EU');
+        }
+    };
+
+    // --- 3. VISUALS ---
+    const visuals = {
+        seaWaypoints: {
+            'suez': [32.5, 30.5], 
+            'malacca': [101.5, 2.5],
+            'panama': [-79.6, 9.0]
+        },
+
+        addCustomsPointBetween: (s, e) => {
+            const p1 = Array.isArray(s) ? new AMap.LngLat(s[0], s[1]) : s;
+            const p2 = Array.isArray(e) ? new AMap.LngLat(e[0], e[1]) : e;
+            const midLng = (p1.getLng() + p2.getLng()) / 2;
+            const midLat = (p1.getLat() + p2.getLat()) / 2;
+            const marker = new AMap.Marker({
+                position: [midLng, midLat],
+                content: `<div style="width:18px;height:18px;border-radius:50%;border:2px solid #ffcc00;color:#ffcc00;font-size:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);box-shadow:0 0 12px #ffcc00;">税</div>`,
+                offset: new AMap.Pixel(-9, -9),
+                zIndex: 120
+            });
+            App.map.add(marker);
+        },
+
+        getSeaPath: (p1, p2) => {
+             // Simple heuristic: If long distance East-West, check if need to pass bottlenecks
+             const lng1 = p1.getLng();
+             const lng2 = p2.getLng();
+             
+             // Route through Suez? (e.g. China <-> Europe)
+             // Approx bounds: Europe (lng < 60), Asia (lng > 60)
+             if ((lng1 < 60 && lng2 > 60) || (lng1 > 60 && lng2 < 60)) {
+                 return [ [lng1, p1.getLat()], visuals.seaWaypoints.suez, visuals.seaWaypoints.malacca, [lng2, p2.getLat()] ];
+             }
+             return null;
+        },
+
+        drawConnection: (s, e, color, style, type, offsetIdx) => {
+            let arch = 0.2;
+            if(offsetIdx > 0) {
+                const sign = offsetIdx % 2 === 0 ? 1 : -1;
+                arch = sign * (0.2 + Math.floor((offsetIdx+1)/2)*0.15);
+            }
+
+            const p1 = Array.isArray(s) ? new AMap.LngLat(s[0], s[1]) : s;
+            const p2 = Array.isArray(e) ? new AMap.LngLat(e[0], e[1]) : e;
+            
+            // Control Point
+            const dx = p2.getLng() - p1.getLng();
+            const dy = p2.getLat() - p1.getLat();
+            // Prevent zero-length route error
+            if(Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return;
+
+            // SPECIAL ROUTING FOR SEA (Type 2)
+            if (type === '2') {
+                const waypoints = visuals.getSeaPath(p1, p2);
+                if (waypoints) {
+                    const polyline = new AMap.Polyline({
+                        path: waypoints,
+                        strokeColor: color, strokeWeight: 3, strokeOpacity: 0.8,
+                        strokeStyle: style, strokeDasharray: [10, 10],
+                        zIndex: 50
+                    });
+                    polyline._baseColor = color;
+                    polyline._baseWeight = 3;
+                    App.map.add(polyline);
+                    App.routes.push(polyline);
+                    return polyline;
+                }
+            }
+
+            // Default Bezier for Air/Road/Rail or non-complex Sea
+            const mid = [ (p1.getLng()+p2.getLng())/2, (p1.getLat()+p2.getLat())/2 ];
+            const cp = [ mid[0] - dy*arch, mid[1] + dx*arch ];
+
+            const path = [ [p1.getLng(), p1.getLat()], [cp[0], cp[1], p2.getLng(), p2.getLat()] ];
+            
+            const curve = new AMap.BezierCurve({
+                path: path,
+                strokeColor: color, strokeWeight: 3, strokeOpacity: 0.8,
+                strokeStyle: style, strokeDasharray: style==='dashed'?[10,10]:[0,0],
+                zIndex: 50
+            });
+            App.map.add(curve);
+            curve._baseColor = color;
+            curve._baseWeight = 3;
+            App.routes.push(curve);
+            return curve;
+        },
+
+        startFlowPolyline: (pathArr, type) => {
+            let icon = '🚢';
+            let speed = 5000;
+            const marker = new AMap.Marker({
+                map: App.map, position: pathArr[0],
+                content: `<div style="font-size:16px; filter:drop-shadow(0 0 5px cyan);">${icon}</div>`,
+                offset: new AMap.Pixel(-8, -8),
+                zIndex: 200
+            });
+            marker.moveAlong(pathArr, speed, k=>k, true); // Loop = true
+        },
+
+        startFlow: (p1, p2, cp, type) => {
+            // Safety check: ensure all coordinates are valid numbers
+            if (!p1 || !p2 || !cp || 
+                isNaN(p1.getLng()) || isNaN(p1.getLat()) ||
+                isNaN(p2.getLng()) || isNaN(p2.getLat()) ||
+                isNaN(cp[0]) || isNaN(cp[1])) {
+                console.warn("Invalid route coordinates, skipping animation", {p1, p2, cp});
+                return;
+            }
+
+            let icon = '✈️';
+            let speed = 10000;
+            if(type=='1') { icon='🚚'; speed=5000; }
+            if(type=='2') { icon='🚢'; speed=3000; }
+            if(type=='4') { icon='🚂'; speed=4000; }
+
+            const path = [];
+            for(let t=0; t<=1; t+=0.02) {
+                const x = (1-t)*(1-t)*p1.getLng() + 2*(1-t)*t*cp[0] + t*t*p2.getLng();
+                const y = (1-t)*(1-t)*p1.getLat() + 2*(1-t)*t*cp[1] + t*t*p2.getLat();
+                if(isNaN(x) || isNaN(y)) {
+                    console.warn("Invalid interpolated point", x, y);
+                    return;
+                }
+                // Use AMap.LngLat object strictly for moveAlong
+                path.push(new AMap.LngLat(x, y));
+            }
+
+            const marker = new AMap.Marker({
+                map: App.map, position: path[0],
+                content: `<div style="font-size:16px; transform:rotate(45deg); filter:drop-shadow(0 0 5px cyan);">${icon}</div>`,
+                offset: new AMap.Pixel(-8, -8),
+                zIndex: 200
+            });
+
+            function loop() {
+                // Double check map and marker existence
+                if(!App.map || !marker.getMap()) return;
+                
+                marker.stopMove();
+                marker.setPosition(path[0]);
+                marker.moveAlong(path, speed, k=>k, false);
+            }
+            marker.on('moveend', () => {
+                 if(App.map && marker.getMap()) setTimeout(loop, 1000);
+            });
+            loop();
+        },
+
+        setRouteActive: (route, active) => {
+            if(!route) return;
+            const baseColor = route._baseColor || '#00d2ff';
+            const baseWeight = route._baseWeight || 3;
+            if(active) {
+                route.setOptions({
+                    strokeColor: '#ffffff',
+                    strokeWeight: baseWeight + 2,
+                    strokeOpacity: 1
+                });
+                if(App.map) {
+                    App.map.setFitView([route]);
+                }
+            } else {
+                route.setOptions({
+                    strokeColor: baseColor,
+                    strokeWeight: baseWeight,
+                    strokeOpacity: 0.8
+                });
+            }
+        }
+    };
+
+    // --- 4. UI CONTROLLER ---
+    const ui = {
+        setMode: (m) => {
+            App.state.mode = m;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            if(m==='connect') document.getElementById('btn-connect').classList.add('active');
+            if(m==='addNode') document.getElementById('btn-add').classList.add('active');
+            let msg = `模式切换: ${m}`;
+            if(m==='connect') msg = "已进入连线模式：请依次点击起点和终点";
+            if(m==='addNode') msg = "已进入选点模式：请在地图上点击要创建节点的位置";
+            ui.showToast(msg);
+        },
+
+        setPhase: (phase) => {
+            App.state.phase = phase;
+            const p1 = document.getElementById('btn-phase-1');
+            const p2 = document.getElementById('btn-phase-2');
+            if(p1 && p2) {
+                p1.classList.toggle('active', phase === 1);
+                p2.classList.toggle('active', phase === 2);
+            }
+            const enablePhase2 = phase === 2;
+            document.querySelectorAll('.phase2-only').forEach(btn => {
+                btn.classList.toggle('disabled', !enablePhase2);
+            });
+            if(phase === 1) {
+                ui.showToast("阶段一：请专注搭建网络骨架（节点与连线）");
+            } else {
+                ui.showToast("阶段二：已解锁 AI 规划与仿真工具");
+            }
+        },
+        
+        setConnectMode: (mode) => {
+            App.state.connectMode = mode;
+            const fan = document.getElementById('btn-mode-fanout');
+            const chain = document.getElementById('btn-mode-chain');
+            if(fan && chain) {
+                fan.classList.toggle('active', mode === 'fanout');
+                chain.classList.toggle('active', mode === 'chain');
+            }
+            ui.showToast(mode === 'fanout' ? "起点固定模式：从同一节点发散连多条线" : "接力模式：终点自动成为下一个起点");
+        },
+
+        setLineType: (t) => {
+            App.state.currentLineType = t;
+            ['1','2','3','4'].forEach(k => {
+                const el = document.getElementById('btn-type-' + k);
+                if(el) el.classList.toggle('active', k === t);
+            });
+            let text = "公路";
+            if(t==='2') text = "海运";
+            if(t==='3') text = "空运";
+            if(t==='4') text = "铁路";
+            ui.showToast("当前线路类型：" + text);
+        },
+        
+        showToast: (msg) => {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.display = 'block';
+            clearTimeout(App.state.toastTimer);
+            App.state.toastTimer = setTimeout(() => t.style.display = 'none', 3000);
+        },
+
+        openAddNodeModal: (fromMap) => {
+            document.getElementById('modal-add-node').style.display = 'flex';
+            if(!fromMap) App.state.tempCoords = App.map.getCenter();
+        },
+
+        confirmAddNode: () => {
+            const name = document.getElementById('node-name').value || "新节点";
+            const region = document.getElementById('node-region').value;
+            const level = document.getElementById('node-level').value;
+            
+            const pos = App.state.tempCoords || App.map.getCenter();
+            logic.addNode(name, pos, parseInt(level), region);
+            ui.setMode('view');
+            ui.closeModals();
+        },
+
+        openPlanModal: (start, end) => {
+            App.state.pendingPlan = { start, end };
+            const fromR = start.getExtData().region;
+            const toR = end.getExtData().region;
+            const isCross = fromR !== toR;
+            App.state.pendingPlan.isCrossBorder = isCross;
+
+            const tariffCost = App.state.params.tariff.crossBorderCost;
+            document.getElementById('plan-desc').innerHTML = `规划线路: <b>${start.getExtData().name}</b> → <b>${end.getExtData().name}</b><br>` + 
+                (isCross ? `<span style="color:#ff3366">⚠ 检测到跨境运输 (${fromR} -> ${toR}) 预计关税约 $${tariffCost}</span>` : "国内/区域内运输");
+            
+            document.getElementById('modal-plan').style.display = 'flex';
+        },
+
+        closeModals: () => {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+            document.getElementById('node-name').value = "";
+        },
+
+        openPlanObjectiveModal: () => {
+            if(!App.state.planStart || !App.state.planEnd) {
+                ui.showToast("请在节点上右键分别设置规划起点和终点");
+                return;
+            }
+            ui.openPlanModal(App.state.planStart, App.state.planEnd);
+        },
+
+        updateStats: () => {
+            const nodesEl = document.getElementById('kpi-nodes');
+            const routesEl = document.getElementById('kpi-routes');
+            const costEl = document.getElementById('kpi-cost');
+            const co2El = document.getElementById('kpi-co2');
+            const timeEl = document.getElementById('kpi-time');
+            const cpCostEl = document.getElementById('cp-total-cost');
+            const cpTimeEl = document.getElementById('cp-total-time');
+
+            const costM = App.state.stats.cost/1000;
+            const hours = App.state.stats.time || 0;
+            let timeText = hours.toFixed(1) + "h";
+            if(hours >= 24) {
+                const days = Math.floor(hours / 24);
+                const h = Math.round(hours % 24);
+                timeText = days + "d " + h + "h";
+            }
+
+            if(nodesEl) nodesEl.innerText = App.nodes.length;
+            if(routesEl) routesEl.innerText = App.routes.length;
+            if(costEl) costEl.innerText = "$" + costM.toFixed(1) + "M";
+            if(co2El) co2El.innerText = (App.state.stats.co2).toFixed(1);
+            if(timeEl) timeEl.innerText = timeText;
+            if(cpCostEl) cpCostEl.innerText = "$" + costM.toFixed(1) + "M";
+            if(cpTimeEl) cpTimeEl.innerText = timeText;
+        },
+
+        toggleCockpit: () => {
+            const cp = document.getElementById('cockpit-view');
+            const isOpening = cp.style.display !== 'flex';
+            cp.style.display = isOpening ? 'flex' : 'none';
+            
+            if(isOpening) {
+                // Start Real-time Simulation
+                if(App.state.simInterval) clearInterval(App.state.simInterval);
+                App.state.simInterval = setInterval(() => {
+                    // Fluctuate stats slightly
+                    const factor = 1 + (Math.random() * 0.02 - 0.01);
+                    App.state.stats.cost *= factor;
+                    ui.updateStats();
+                    
+                    // Animate bars
+                    document.querySelectorAll('.bar').forEach(bar => {
+                         if(Math.random() > 0.7) bar.style.height = (20 + Math.random() * 80) + '%';
+                    });
+                }, 2000);
+
+                // Animate Charts
+                document.querySelectorAll('.bar').forEach(bar => {
+                    // Random height animation
+                    const h = 20 + Math.random() * 80;
+                    bar.style.height = h + '%';
+                });
+                
+                // Show AI Suggestion Toast
+                setTimeout(() => {
+                    const suggestions = [
+                        "建议: 增加上海港至洛杉矶的空运频次以缓解海运压力。",
+                        "优化: 欧洲区铁路运输成本上升，建议切换至海运。",
+                        "警告: 东南亚区域台风季临近，请提前规划备选航线。",
+                        "智能分析: 发现新的低成本航线组合，建议重新规划。"
+                    ];
+                    ui.showToast("AI 助手: " + suggestions[Math.floor(Math.random()*suggestions.length)]);
+                }, 1500);
+            } else {
+                if(App.state.simInterval) clearInterval(App.state.simInterval);
+            }
+        },
+
+        toggleParamPanel: () => {
+            const panel = document.getElementById('param-panel');
+            const isOpen = panel.style.display === 'block';
+            panel.style.display = isOpen ? 'none' : 'block';
+            if(!isOpen) {
+                ui.syncParamPanel();
+                ui.showToast("参数面板已打开");
+            }
+        },
+
+        syncParamPanel: () => {
+            const p = App.state.params;
+            const d = DefaultParams;
+            const setPair = (name, value, def, digits = 1) => {
+                const slider = document.getElementById('param-' + name);
+                const valEl = document.getElementById('val-' + name);
+                const defEl = document.getElementById('def-' + name.replace('-', '-'));
+                if(slider) slider.value = value;
+                if(valEl) valEl.innerText = value.toFixed(digits);
+                if(defEl) defEl.innerText = def.toFixed(digits);
+            };
+
+            setPair('road-speed', p.transport.road.speed, d.transport.road.speed, 0);
+            setPair('road-cost', p.transport.road.cost, d.transport.road.cost, 2);
+            setPair('road-co2', p.transport.road.co2, d.transport.road.co2, 3);
+
+            setPair('rail-speed', p.transport.rail.speed, d.transport.rail.speed, 0);
+            setPair('rail-cost', p.transport.rail.cost, d.transport.rail.cost, 2);
+            setPair('rail-co2', p.transport.rail.co2, d.transport.rail.co2, 3);
+
+            setPair('sea-speed', p.transport.sea.speed, d.transport.sea.speed, 0);
+            setPair('sea-cost', p.transport.sea.cost, d.transport.sea.cost, 2);
+            setPair('sea-co2', p.transport.sea.co2, d.transport.sea.co2, 3);
+
+            setPair('air-speed', p.transport.air.speed, d.transport.air.speed, 0);
+            setPair('air-cost', p.transport.air.cost, d.transport.air.cost, 2);
+            setPair('air-co2', p.transport.air.co2, d.transport.air.co2, 3);
+
+            setPair('tariff-cost', p.tariff.crossBorderCost, d.tariff.crossBorderCost, 0);
+            setPair('tariff-delay', p.tariff.crossBorderDelayH, d.tariff.crossBorderDelayH, 0);
+            setPair('event-tariff', p.events.tariffSpikeFactor, d.events.tariffSpikeFactor, 1);
+        },
+
+        updateParamSlider: (name, el) => {
+            const v = parseFloat(el.value);
+            const p = App.state.params;
+            const d = DefaultParams;
+            const valEl = document.getElementById('val-' + name);
+            const digits = name.indexOf('speed') !== -1 || name.indexOf('delay') !== -1 || name.indexOf('cost') !== -1 ? 0 : 3;
+            if(name === 'road-speed') p.transport.road.speed = v;
+            if(name === 'road-cost') p.transport.road.cost = v;
+            if(name === 'road-co2') p.transport.road.co2 = v;
+
+            if(name === 'rail-speed') p.transport.rail.speed = v;
+            if(name === 'rail-cost') p.transport.rail.cost = v;
+            if(name === 'rail-co2') p.transport.rail.co2 = v;
+
+            if(name === 'sea-speed') p.transport.sea.speed = v;
+            if(name === 'sea-cost') p.transport.sea.cost = v;
+            if(name === 'sea-co2') p.transport.sea.co2 = v;
+
+            if(name === 'air-speed') p.transport.air.speed = v;
+            if(name === 'air-cost') p.transport.air.cost = v;
+            if(name === 'air-co2') p.transport.air.co2 = v;
+
+            if(name === 'tariff-cost') p.tariff.crossBorderCost = v;
+            if(name === 'tariff-delay') p.tariff.crossBorderDelayH = v;
+            if(name === 'event-tariff') p.events.tariffSpikeFactor = v;
+
+            if(valEl) valEl.innerText = v.toFixed(digits === 0 ? 0 : digits);
+            ui.updateStats();
+        },
+
+        resetSingleParam: (name) => {
+            const p = App.state.params;
+            const d = DefaultParams;
+            if(name === 'road-speed') p.transport.road.speed = d.transport.road.speed;
+            if(name === 'road-cost') p.transport.road.cost = d.transport.road.cost;
+            if(name === 'road-co2') p.transport.road.co2 = d.transport.road.co2;
+
+            if(name === 'rail-speed') p.transport.rail.speed = d.transport.rail.speed;
+            if(name === 'rail-cost') p.transport.rail.cost = d.transport.rail.cost;
+            if(name === 'rail-co2') p.transport.rail.co2 = d.transport.rail.co2;
+
+            if(name === 'sea-speed') p.transport.sea.speed = d.transport.sea.speed;
+            if(name === 'sea-cost') p.transport.sea.cost = d.transport.sea.cost;
+            if(name === 'sea-co2') p.transport.sea.co2 = d.transport.sea.co2;
+
+            if(name === 'air-speed') p.transport.air.speed = d.transport.air.speed;
+            if(name === 'air-cost') p.transport.air.cost = d.transport.air.cost;
+            if(name === 'air-co2') p.transport.air.co2 = d.transport.air.co2;
+
+            if(name === 'tariff-cost') p.tariff.crossBorderCost = d.tariff.crossBorderCost;
+            if(name === 'tariff-delay') p.tariff.crossBorderDelayH = d.tariff.crossBorderDelayH;
+            if(name === 'event-tariff') p.events.tariffSpikeFactor = d.events.tariffSpikeFactor;
+
+            ui.syncParamPanel();
+            ui.showToast("参数已恢复默认值");
+        },
+
+        resetAllParams: () => {
+            App.state.params = JSON.parse(JSON.stringify(DefaultParams));
+            ui.syncParamPanel();
+            ui.updateStats();
+            ui.showToast("全部参数已恢复默认");
+        }
+    };
+    
+    // --- 5. EXPORT ---
+    const io = {
+        exportReport: () => {
+            if(App.connections.length === 0) { ui.showToast("暂无数据可导出"); return; }
+            
+            // CSV Generation
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM
+            csvContent += "From,To,Type,Cost (USD),CO2 (Ton)\n";
+            App.connections.forEach(c => {
+                csvContent += `${c.from},${c.to},${c.type},${c.cost.toFixed(2)},${c.co2.toFixed(2)}\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `LogiGlobe_Report_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            ui.showToast("报告已下载 (CSV)");
+        }
+    };
+
+    // Run
+    initSystem();
+    ui.setPhase(1);
+
+</script>
+</body>
+</html>
