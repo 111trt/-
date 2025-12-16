@@ -431,6 +431,22 @@
                 </div>
                 <div id="cp-scheme-compare" style="font-size:0.85rem; color:#ccc;"></div>
             </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">节点表现 (NODE PERFORMANCE)</h3>
+                <div id="cp-node-top" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">区域拆分 (REGIONAL BREAKDOWN)</h3>
+                <div id="cp-region-breakdown" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">事件影响 (EVENT IMPACT)</h3>
+                <div id="cp-event-impact" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">实时告警 (REAL-TIME ALERTS)</h3>
+                <div id="cp-alerts" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
         </div>
     </div>
 
@@ -664,6 +680,7 @@
             tempStart: null,
             planStart: null,
             planEnd: null,
+            planEndList: [],
             lastPlanRoutes: [],
             navPolylines: [],
             virtualMarkers: [],
@@ -698,7 +715,8 @@
                     balancedCo2Weight: 0.2
                 }
             },
-            backendBaseUrl: 'http://121.41.69.91:3001'
+            backendBaseUrl: 'http://121.41.69.91:3001',
+            multiPlanRouteGroups: []
         }
     };
 
@@ -943,13 +961,24 @@
             });
             addItem("设为规划起点 (Plan Start)", () => {
                 App.state.planStart = marker;
+                App.state.planEndList = App.state.planEndList || [];
                 logic.persistPlanEndpoints();
                 ui.showToast(`AI 规划起点: ${marker.getExtData().name}`);
             });
             addItem("设为规划终点 (Plan End)", () => {
                 App.state.planEnd = marker;
+                App.state.planEndList = [marker];
                 logic.persistPlanEndpoints();
                 ui.showToast(`AI 规划终点: ${marker.getExtData().name}`);
+            });
+            addItem("加入多终点集合 (Add As Multi-End)", () => {
+                if(!App.state.planEndList) App.state.planEndList = [];
+                const list = App.state.planEndList;
+                if(!list.includes(marker)) {
+                    list.push(marker);
+                }
+                App.state.planEnd = marker;
+                ui.showToast(`已加入多终点集合: ${marker.getExtData().name}`);
             });
             document.body.appendChild(menu);
             setTimeout(() => {
@@ -1753,79 +1782,126 @@
             else if(objective === 'co2') objectiveApi = 'green';
             else if(objective === 'balanced') objectiveApi = 'balanced';
 
-            const payload = {
+            const originId = (App.state.planStart.getExtData() || {}).id || startName;
+            const events = Array.isArray(App.state.events) ? App.state.events.filter(ev => ev && ev.enabled !== false) : [];
+            const endMarkers = [];
+            const endList = Array.isArray(App.state.planEndList) ? App.state.planEndList : [];
+            if(endList.length) {
+                const seen = new Set();
+                endList.forEach(m => {
+                    if(!m) return;
+                    const ext = m.getExtData() || {};
+                    const id = ext.id || ext.name;
+                    if(!id || seen.has(id)) return;
+                    seen.add(id);
+                    endMarkers.push(m);
+                });
+            }
+            if(!endMarkers.length) {
+                endMarkers.push(App.state.planEnd);
+            }
+            const basePayload = {
                 nodes,
                 edges,
-                originId: (App.state.planStart.getExtData() || {}).id || startName,
-                destinationId: (App.state.planEnd.getExtData() || {}).id || endName,
+                originId,
                 objective: objectiveApi,
-                events: Array.isArray(App.state.events) ? App.state.events.filter(ev => ev && ev.enabled !== false) : []
+                events
             };
 
             const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
-            ui.showToast("AI 正在请求后端计算最优路径...");
+            ui.showToast("AI 正在为多个目的地计算最优路径...");
 
-            fetch(baseUrl + "/api/plan/route", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
-            .then(({ ok, status, data }) => {
-                if(!ok) {
-                    ui.showToast(data && data.error ? data.error : ("后端计算失败, 状态码 " + status));
+            const tasks = endMarkers.map(m => {
+                const ext = m.getExtData() || {};
+                const id = ext.id || ext.name;
+                const name = ext.name || id;
+                const payload = Object.assign({}, basePayload, { destinationId: id });
+                return fetch(baseUrl + "/api/plan/route", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data, destId: id, destName: name })))
+                .catch(() => ({ ok: false, status: 0, data: null, destId: id, destName: name }));
+            });
+
+            Promise.all(tasks).then(results => {
+                const allLegs = [];
+                const allNodes = [];
+                const groups = [];
+                results.forEach(r => {
+                    if(!r || !r.ok || !r.data) return;
+                    const legs = Array.isArray(r.data.legs) ? r.data.legs : [];
+                    if(!legs.length) return;
+                    const tagged = legs.map(l => {
+                        const copy = Object.assign({}, l);
+                        copy._destId = r.destId;
+                        copy._destName = r.destName;
+                        return copy;
+                    });
+                    allLegs.push.apply(allLegs, tagged);
+                    if(Array.isArray(r.data.nodes)) {
+                        allNodes.push.apply(allNodes, r.data.nodes);
+                    }
+                    groups.push({ destId: r.destId, destName: r.destName });
+                });
+
+                if(!allLegs.length) {
+                    const firstError = results.find(r => r && !r.ok);
+                    if(firstError && firstError.data && firstError.data.error) {
+                        ui.showToast(firstError.data.error);
+                    } else {
+                        ui.showToast("后端未返回可用路径");
+                    }
                     return;
                 }
-                const legs = data.legs || [];
-                if(!legs.length) {
-                    ui.showToast("后端未返回可用路径");
-                    return;
-                }
 
-                if(Array.isArray(data.nodes)) {
-                    logic.syncBackendNodes(data.nodes);
+                if(allNodes.length) {
+                    logic.syncBackendNodes(allNodes);
                 } else {
                     logic.clearVirtualMarkers();
                 }
 
-                logic.applyLegModesToConnections(legs);
-                visuals.buildNavPolylinesForLegs(legs);
+                logic.applyLegModesToConnections(allLegs);
+                visuals.buildNavPolylinesForLegs(allLegs);
 
                 const activeRoutes = [];
-                legs.forEach(leg => {
-                    let routeLike = null;
-                    const conn = App.connections.find(c =>
-                        (c.from === leg.fromId && c.to === leg.toId) ||
-                        (c.from === leg.toId && c.to === leg.fromId)
-                    );
-                    if(conn && conn.route) {
-                        routeLike = conn.route;
-                    } else if (leg._navLine) {
-                        routeLike = leg._navLine;
-                    }
-                    if(routeLike && !activeRoutes.includes(routeLike)) {
-                        activeRoutes.push(routeLike);
-                    }
+                const routeGroups = [];
+                groups.forEach(g => {
+                    const groupLegs = allLegs.filter(l => l._destId === g.destId);
+                    const groupRoutes = [];
+                    groupLegs.forEach(leg => {
+                        let routeLike = null;
+                        const conn = App.connections.find(c =>
+                            (c.from === leg.fromId && c.to === leg.toId) ||
+                            (c.from === leg.toId && c.to === leg.fromId)
+                        );
+                        if(conn && conn.route) {
+                            routeLike = conn.route;
+                        } else if (leg._navLine) {
+                            routeLike = leg._navLine;
+                        }
+                        if(routeLike && !groupRoutes.includes(routeLike)) {
+                            groupRoutes.push(routeLike);
+                        }
+                        if(routeLike && !activeRoutes.includes(routeLike)) {
+                            activeRoutes.push(routeLike);
+                        }
+                    });
+                    routeGroups.push(groupRoutes);
                 });
+
                 App.state.lastPlanRoutes = activeRoutes;
+                App.state.multiPlanRouteGroups = routeGroups;
                 visuals.highlightPlanRoutes(activeRoutes);
                 if(App.map && activeRoutes.length) {
                     App.map.setFitView(activeRoutes);
                 }
 
-                if(data.summary) {
-                    App.state.stats = {
-                        cost: data.summary.totalCost || 0,
-                        co2: data.summary.totalCo2 || 0,
-                        dist: data.summary.totalDistanceKm || 0,
-                        time: data.summary.totalTimeHours || 0
-                    };
-                }
                 ui.updateStats();
                 ui.closeModals();
-                ui.showToast("AI 最优路径已计算完成");
-            })
-            .catch(err => {
+                ui.showToast("AI 多目的地最优路径已计算完成");
+            }).catch(err => {
                 console.error(err);
                 ui.showToast("无法连接后端服务，请检查后端是否启动");
             });
@@ -1893,47 +1969,90 @@
         },
 
         playPlanAnimation: () => {
-            let routes = (App.state.lastPlanRoutes && App.state.lastPlanRoutes.length) ? App.state.lastPlanRoutes : App.routes;
-            if((!App.state.lastPlanRoutes || !App.state.lastPlanRoutes.length) && routes && routes.length) {
-                routes = logic.buildAnimationSequence(routes);
+            const playRoutesOnce = (routes, onComplete) => {
+                if(!App.map || !routes || !routes.length) {
+                    if(typeof onComplete === 'function') onComplete();
+                    return;
+                }
+                let list = routes;
+                if(!App.state.lastPlanRoutes || !App.state.lastPlanRoutes.length) {
+                    list = logic.buildAnimationSequence(routes);
+                }
+                let index = 0;
+                const total = list.length;
+                list.forEach(r => visuals.setRouteActive(r, false));
+                const step = () => {
+                    const route = list[index];
+                    visuals.setRouteActive(route, true);
+                    const finishSegment = () => {
+                        index += 1;
+                        if(index < total) {
+                            setTimeout(step, 800);
+                        } else {
+                            if(typeof onComplete === 'function') {
+                                setTimeout(onComplete, 800);
+                            }
+                        }
+                    };
+                    if(route && route._navPath && route._navPath.length) {
+                        const pathArr = route._navPath.map(p => Array.isArray(p) ? new AMap.LngLat(p[0], p[1]) : p);
+                        visuals.startFlowPolyline(pathArr, route._type || '1', finishSegment);
+                    } else if(route && route._seaPath && route._seaPath.length) {
+                        const pathArr = route._seaPath.map(p => Array.isArray(p) ? new AMap.LngLat(p[0], p[1]) : p);
+                        visuals.startFlowPolyline(pathArr, route._type || '2', finishSegment);
+                    } else if(route && route._p1 && route._p2 && route._cp) {
+                        visuals.startFlow(route._p1, route._p2, route._cp, route._type || '1', { loop: false, onComplete: finishSegment });
+                    } else {
+                        finishSegment();
+                    }
+                };
+                if(App.map && list.length) {
+                    App.map.setFitView(list);
+                }
+                step();
+            };
+
+            const groups = Array.isArray(App.state.multiPlanRouteGroups) ? App.state.multiPlanRouteGroups : [];
+            if(groups.length) {
+                const flat = [];
+                groups.forEach(g => {
+                    if(Array.isArray(g)) {
+                        g.forEach(r => {
+                            if(r && !flat.includes(r)) flat.push(r);
+                        });
+                    }
+                });
+                if(!App.map || !flat.length) {
+                    ui.showToast("暂无可演示的线路");
+                    return;
+                }
+                let idx = 0;
+                const runGroup = () => {
+                    while(idx < groups.length && (!groups[idx] || !groups[idx].length)) {
+                        idx += 1;
+                    }
+                    if(idx >= groups.length) {
+                        ui.showToast("AI 路径演示已完成");
+                        return;
+                    }
+                    const current = groups[idx].slice();
+                    idx += 1;
+                    playRoutesOnce(current, runGroup);
+                };
+                ui.showToast("AI 多目的地分步骤路径演示开始");
+                runGroup();
+                return;
             }
+
+            let routes = (App.state.lastPlanRoutes && App.state.lastPlanRoutes.length) ? App.state.lastPlanRoutes : App.routes;
             if(!App.map || !routes || routes.length === 0) {
                 ui.showToast("暂无可演示的线路");
                 return;
             }
-            let index = 0;
-            const total = routes.length;
-            routes.forEach(r => visuals.setRouteActive(r, false));
-            const step = () => {
-                const route = routes[index];
-                visuals.setRouteActive(route, true);
-                const finishSegment = () => {
-                    index += 1;
-                    if(index < total) {
-                        setTimeout(step, 800);
-                    } else {
-                        setTimeout(() => {
-                            ui.showToast("AI 路径演示已完成");
-                        }, 800);
-                    }
-                };
-                if(route && route._navPath && route._navPath.length) {
-                    const pathArr = route._navPath.map(p => Array.isArray(p) ? new AMap.LngLat(p[0], p[1]) : p);
-                    visuals.startFlowPolyline(pathArr, route._type || '1', finishSegment);
-                } else if(route && route._seaPath && route._seaPath.length) {
-                    const pathArr = route._seaPath.map(p => Array.isArray(p) ? new AMap.LngLat(p[0], p[1]) : p);
-                    visuals.startFlowPolyline(pathArr, route._type || '2', finishSegment);
-                } else if(route && route._p1 && route._p2 && route._cp) {
-                    visuals.startFlow(route._p1, route._p2, route._cp, route._type || '1', { loop: false, onComplete: finishSegment });
-                } else {
-                    finishSegment();
-                }
-            };
-            if(App.map && routes.length) {
-                App.map.setFitView(routes);
-            }
             ui.showToast("AI 分步骤路径演示开始");
-            step();
+            playRoutesOnce(routes, () => {
+                ui.showToast("AI 路径演示已完成");
+            });
         },
 
         clearVirtualMarkers: () => {
@@ -2592,6 +2711,10 @@
             const anlModeSeaEl = document.getElementById('anl-mode-sea');
             const anlModeAirEl = document.getElementById('anl-mode-air');
             const anlModeRailEl = document.getElementById('anl-mode-rail');
+            const nodeTopEl = document.getElementById('cp-node-top');
+            const regionBreakEl = document.getElementById('cp-region-breakdown');
+            const eventImpactEl = document.getElementById('cp-event-impact');
+            const alertsEl = document.getElementById('cp-alerts');
 
             const costM = App.state.stats.cost/1000;
             const hours = App.state.stats.time || 0;
@@ -2643,6 +2766,211 @@
             if(anlModeSeaEl) anlModeSeaEl.innerText = toPct(modeCounts['2']) + "%";
             if(anlModeAirEl) anlModeAirEl.innerText = toPct(modeCounts['3']) + "%";
             if(anlModeRailEl) anlModeRailEl.innerText = toPct(modeCounts['4']) + "%";
+
+            const nodeIndex = {};
+            App.nodes.forEach(m => {
+                const ext = m.getExtData() || {};
+                if(ext.name) {
+                    nodeIndex[ext.name] = { marker: m, ext };
+                }
+            });
+
+            const nodeStats = {};
+            const ensureNode = (name) => {
+                if(!nodeStats[name]) {
+                    nodeStats[name] = { legs: 0, cost: 0, time: 0 };
+                }
+                return nodeStats[name];
+            };
+            cons.forEach(c => {
+                const fromName = c.from;
+                const toName = c.to;
+                const costVal = c.cost || 0;
+                const timeVal = c.hours || 0;
+                if(fromName) {
+                    const s = ensureNode(fromName);
+                    s.legs += 1;
+                    s.cost += costVal;
+                    s.time += timeVal;
+                }
+                if(toName) {
+                    const t = ensureNode(toName);
+                    t.legs += 1;
+                    t.cost += costVal;
+                    t.time += timeVal;
+                }
+            });
+
+            if(nodeTopEl) {
+                const entries = Object.keys(nodeStats).map(name => {
+                    const stat = nodeStats[name];
+                    const info = nodeIndex[name] || {};
+                    const ext = info.ext || {};
+                    const region = ext.region || "-";
+                    const levelRaw = typeof ext.level === "number" ? ext.level : ext.level;
+                    const level = levelRaw != null ? levelRaw : "-";
+                    const avgCost = stat.legs ? stat.cost / stat.legs : 0;
+                    const avgTime = stat.legs ? stat.time / stat.legs : 0;
+                    let avgTimeText = avgTime.toFixed(1) + "h";
+                    if(avgTime >= 24) {
+                        const d = Math.floor(avgTime / 24);
+                        const h = Math.round(avgTime % 24);
+                        avgTimeText = d + "d " + h + "h";
+                    }
+                    return {
+                        name,
+                        region,
+                        level,
+                        legs: stat.legs,
+                        avgCost,
+                        avgTimeText
+                    };
+                }).sort((a, b) => b.legs - a.legs).slice(0, 5);
+                if(!entries.length) {
+                    nodeTopEl.innerHTML = "<div>当前暂无可统计的线路，请先完成路径规划。</div>";
+                } else {
+                    const rows = entries.map(e => {
+                        const costMPerLeg = e.avgCost / 1000;
+                        return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(0,210,255,0.1);">
+                            <div>
+                                <div style="color:#fff;">${e.name}</div>
+                                <div style="color:#888; font-size:0.75rem;">区域 ${e.region} · Level ${e.level}</div>
+                            </div>
+                            <div style="text-align:right; font-size:0.75rem;">
+                                <div>段数 ${e.legs}</div>
+                                <div>平均成本 $${costMPerLeg.toFixed(2)}M</div>
+                                <div>平均时间 ${e.avgTimeText}</div>
+                            </div>
+                        </div>`;
+                    });
+                    nodeTopEl.innerHTML = rows.join("");
+                }
+            }
+
+            const regionStats = {};
+            const ensureRegion = (region) => {
+                const key = region || "-";
+                if(!regionStats[key]) {
+                    regionStats[key] = { legs: 0, cost: 0, time: 0, co2: 0 };
+                }
+                return regionStats[key];
+            };
+            cons.forEach(c => {
+                const fromInfo = nodeIndex[c.from] || null;
+                const toInfo = nodeIndex[c.to] || null;
+                const regionFrom = fromInfo && fromInfo.ext && fromInfo.ext.region ? fromInfo.ext.region : "-";
+                const regionTo = toInfo && toInfo.ext && toInfo.ext.region ? toInfo.ext.region : "-";
+                const costVal = c.cost || 0;
+                const timeVal = c.hours || 0;
+                const co2Val = c.co2 || 0;
+                const r1 = ensureRegion(regionFrom);
+                r1.legs += 1;
+                r1.cost += costVal;
+                r1.time += timeVal;
+                r1.co2 += co2Val;
+                const r2 = ensureRegion(regionTo);
+                r2.legs += 1;
+                r2.cost += costVal;
+                r2.time += timeVal;
+                r2.co2 += co2Val;
+            });
+            if(regionBreakEl) {
+                const regionEntries = Object.keys(regionStats).map(regionKey => {
+                    const s = regionStats[regionKey];
+                    const legsVal = s.legs || 0;
+                    const avgCost = legsVal ? s.cost / legsVal : 0;
+                    const avgTime = legsVal ? s.time / legsVal : 0;
+                    const avgCo2 = legsVal ? s.co2 / legsVal : 0;
+                    let avgTimeText = avgTime.toFixed(1) + "h";
+                    if(avgTime >= 24) {
+                        const d = Math.floor(avgTime / 24);
+                        const h = Math.round(avgTime % 24);
+                        avgTimeText = d + "d " + h + "h";
+                    }
+                    return {
+                        region: regionKey,
+                        legs: legsVal,
+                        totalCostM: s.cost / 1000,
+                        avgTimeText,
+                        avgCo2
+                    };
+                }).sort((a, b) => b.legs - a.legs).slice(0, 4);
+                if(!regionEntries.length) {
+                    regionBreakEl.innerHTML = "<div>尚未形成区域网络，建立连线后将展示区域统计。</div>";
+                } else {
+                    const rows = regionEntries.map(e => {
+                        return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(0,210,255,0.1);">
+                            <div>
+                                <div style="color:#fff;">区域 ${e.region}</div>
+                                <div style="color:#888; font-size:0.75rem;">段数 ${e.legs}</div>
+                            </div>
+                            <div style="text-align:right; font-size:0.75rem;">
+                                <div>总成本 $${e.totalCostM.toFixed(2)}M</div>
+                                <div>平均时间 ${e.avgTimeText}</div>
+                                <div>平均碳排 ${e.avgCo2.toFixed(2)}</div>
+                            </div>
+                        </div>`;
+                    });
+                    regionBreakEl.innerHTML = rows.join("");
+                }
+            }
+
+            const events = Array.isArray(App.state.events) ? App.state.events.filter(ev => ev && ev.enabled !== false) : [];
+            if(eventImpactEl) {
+                if(!events.length) {
+                    eventImpactEl.innerHTML = "<div>当前没有启用的事件，网络运行稳定。</div>";
+                } else {
+                    const typeCounts = {};
+                    let totalRadius = 0;
+                    let totalDelay = 0;
+                    events.forEach(ev => {
+                        const type = ev.type || "event";
+                        typeCounts[type] = (typeCounts[type] || 0) + 1;
+                        if(typeof ev.radiusKm === "number") totalRadius += ev.radiusKm;
+                        if(typeof ev.delayHours === "number") totalDelay += ev.delayHours;
+                    });
+                    const avgRadius = totalRadius / events.length;
+                    const avgDelay = totalDelay / events.length;
+                    const typeParts = Object.keys(typeCounts).map(k => k + ": " + typeCounts[k]).join(" · ");
+                    eventImpactEl.innerHTML =
+                        `<div style="padding:4px 0;">启用事件: <span style="color:var(--neon-blue)">${events.length}</span> 个</div>
+                        <div style="padding:4px 0;">平均影响半径: <span style="color:var(--neon-green)">${avgRadius.toFixed(0)}</span> km</div>
+                        <div style="padding:4px 0;">平均额外延时: <span style="color:var(--neon-pink)">${avgDelay.toFixed(1)}</span> h</div>
+                        <div style="padding:4px 0; font-size:0.8rem; color:#aaa;">类型分布: ${typeParts}</div>`;
+                }
+            }
+
+            if(alertsEl) {
+                const alerts = [];
+                if(legs > 0 && ratio >= 50) {
+                    alerts.push("跨境运输占比偏高，建议评估关税与地缘风险。");
+                }
+                if(App.state.stats.co2 > 1000) {
+                    alerts.push("碳排放累计值较高，可以尝试提高铁路和海运占比。");
+                }
+                const pctRoad = toPct(modeCounts['1']);
+                const pctSea = toPct(modeCounts['2']);
+                const pctAir = toPct(modeCounts['3']);
+                const pctRail = toPct(modeCounts['4']);
+                if(pctAir > 40) {
+                    alerts.push("空运占比较大，成本和碳排压力较高。");
+                }
+                if(pctSea > 60) {
+                    alerts.push("海运占比较高，注意天气与港口拥堵风险。");
+                }
+                if(pctRail < 10 && legs > 0) {
+                    alerts.push("铁路运力利用偏低，可考虑增加部分中欧班列等方案。");
+                }
+                if(events && events.length) {
+                    alerts.push("部分事件区域影响路径，请关注事件面板并适时重规划。");
+                }
+                if(!alerts.length) {
+                    alertsEl.innerHTML = "<div>当前未检测到明显风险，网络运行在安全区间。</div>";
+                } else {
+                    const html = alerts.map(msg => `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);">${msg}</div>`).join("");
+                    alertsEl.innerHTML = html;
+                }
+            }
         },
 
         toggleCockpit: () => {
