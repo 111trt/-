@@ -1910,7 +1910,7 @@
                 const name = ext.name || id;
                 const destId = id;
                 const nodePaths = findSimplePaths(startName, name, maxPathsPerDest, 12);
-                if(nodePaths && nodePaths.length > 1) {
+                if(nodePaths && nodePaths.length > 0) {
                     nodePaths.forEach((pathNodes, altIndex) => {
                         const edgesForPath = buildEdgesForNodePath(pathNodes);
                         const payload = Object.assign({}, basePayloadCommon, {
