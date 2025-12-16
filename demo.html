@@ -1746,6 +1746,97 @@
                 return;
             }
 
+            const buildAllEdges = () => {
+                const list = [];
+                App.connections.forEach(c => {
+                    const base = {
+                        from: c.from,
+                        to: c.to,
+                        mode: c.type,
+                        distanceKm: c.distKm
+                    };
+                    list.push(base);
+                    list.push({
+                        from: c.to,
+                        to: c.from,
+                        mode: c.type,
+                        distanceKm: c.distKm
+                    });
+                });
+                return list;
+            };
+
+            const buildAdj = () => {
+                const adj = {};
+                App.connections.forEach(c => {
+                    if(!c || !c.from || !c.to) return;
+                    if(!adj[c.from]) adj[c.from] = [];
+                    if(!adj[c.to]) adj[c.to] = [];
+                    adj[c.from].push(c.to);
+                    adj[c.to].push(c.from);
+                });
+                return adj;
+            };
+
+            const findSimplePaths = (start, end, maxPaths, maxDepth) => {
+                const paths = [];
+                if(!start || !end || start === end) return paths;
+                const adj = buildAdj();
+                const stack = [start];
+                const visited = new Set([start]);
+                const limitPaths = typeof maxPaths === 'number' && maxPaths > 0 ? maxPaths : 4;
+                const limitDepth = typeof maxDepth === 'number' && maxDepth > 0 ? maxDepth : 12;
+                const dfs = (node) => {
+                    if(paths.length >= limitPaths) return;
+                    if(stack.length > limitDepth) return;
+                    if(node === end) {
+                        paths.push(stack.slice());
+                        return;
+                    }
+                    const neighbors = adj[node] || [];
+                    for(let i=0;i<neighbors.length;i++) {
+                        const next = neighbors[i];
+                        if(visited.has(next)) continue;
+                        visited.add(next);
+                        stack.push(next);
+                        dfs(next);
+                        stack.pop();
+                        visited.delete(next);
+                        if(paths.length >= limitPaths) return;
+                    }
+                };
+                dfs(start);
+                return paths;
+            };
+
+            const buildEdgesForNodePath = (nodePath) => {
+                const list = [];
+                if(!Array.isArray(nodePath) || nodePath.length < 2) return list;
+                for(let i=0;i<nodePath.length-1;i++) {
+                    const a = nodePath[i];
+                    const b = nodePath[i+1];
+                    const conn = App.connections.find(c =>
+                        (c.from === a && c.to === b) ||
+                        (c.from === b && c.to === a)
+                    );
+                    if(!conn) continue;
+                    const base = {
+                        from: conn.from,
+                        to: conn.to,
+                        mode: conn.type,
+                        distanceKm: conn.distKm
+                    };
+                    list.push(base);
+                    list.push({
+                        from: conn.to,
+                        to: conn.from,
+                        mode: conn.type,
+                        distanceKm: conn.distKm
+                    });
+                }
+                return list;
+            };
+
             const nodes = App.nodes.map(marker => {
                 const pos = marker.getPosition();
                 const ext = marker.getExtData() || {};
@@ -1800,29 +1891,83 @@
             if(!endMarkers.length) {
                 endMarkers.push(App.state.planEnd);
             }
-            const basePayload = {
+            const basePayloadCommon = {
                 nodes,
-                edges,
                 originId,
                 objective: objectiveApi,
                 events
             };
 
             const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
-            ui.showToast("AI 正在为多个目的地计算最优路径...");
+            ui.showToast("AI 正在为多条候选路线计算最优路径...");
 
-            const tasks = endMarkers.map(m => {
+            const tasks = [];
+            const maxPathsPerDest = 4;
+            const allEdgesFallback = buildAllEdges();
+            endMarkers.forEach(m => {
                 const ext = m.getExtData() || {};
                 const id = ext.id || ext.name;
                 const name = ext.name || id;
-                const payload = Object.assign({}, basePayload, { destinationId: id });
-                return fetch(baseUrl + "/api/plan/route", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                })
-                .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data, destId: id, destName: name })))
-                .catch(() => ({ ok: false, status: 0, data: null, destId: id, destName: name }));
+                const destId = id;
+                const nodePaths = findSimplePaths(startName, name, maxPathsPerDest, 12);
+                if(nodePaths && nodePaths.length > 1) {
+                    nodePaths.forEach((pathNodes, altIndex) => {
+                        const edgesForPath = buildEdgesForNodePath(pathNodes);
+                        const payload = Object.assign({}, basePayloadCommon, {
+                            destinationId: destId,
+                            edges: edgesForPath
+                        });
+                        const task = fetch(baseUrl + "/api/plan/route", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload)
+                        })
+                        .then(res => res.json().then(data => ({
+                            ok: res.ok,
+                            status: res.status,
+                            data,
+                            destId,
+                            destName: name,
+                            altIndex
+                        })))
+                        .catch(() => ({
+                            ok: false,
+                            status: 0,
+                            data: null,
+                            destId,
+                            destName: name,
+                            altIndex
+                        }));
+                        tasks.push(task);
+                    });
+                } else {
+                    const payload = Object.assign({}, basePayloadCommon, {
+                        destinationId: destId,
+                        edges: allEdgesFallback
+                    });
+                    const task = fetch(baseUrl + "/api/plan/route", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => res.json().then(data => ({
+                        ok: res.ok,
+                        status: res.status,
+                        data,
+                        destId,
+                        destName: name,
+                        altIndex: 0
+                    })))
+                    .catch(() => ({
+                        ok: false,
+                        status: 0,
+                        data: null,
+                        destId,
+                        destName: name,
+                        altIndex: 0
+                    }));
+                    tasks.push(task);
+                }
             });
 
             Promise.all(tasks).then(results => {
@@ -1837,13 +1982,14 @@
                         const copy = Object.assign({}, l);
                         copy._destId = r.destId;
                         copy._destName = r.destName;
+                        copy._altIndex = typeof r.altIndex === 'number' ? r.altIndex : 0;
                         return copy;
                     });
                     allLegs.push.apply(allLegs, tagged);
                     if(Array.isArray(r.data.nodes)) {
                         allNodes.push.apply(allNodes, r.data.nodes);
                     }
-                    groups.push({ destId: r.destId, destName: r.destName });
+                    groups.push({ destId: r.destId, destName: r.destName, altIndex: typeof r.altIndex === 'number' ? r.altIndex : 0 });
                 });
 
                 if(!allLegs.length) {
@@ -1868,7 +2014,7 @@
                 const activeRoutes = [];
                 const routeGroups = [];
                 groups.forEach(g => {
-                    const groupLegs = allLegs.filter(l => l._destId === g.destId);
+                    const groupLegs = allLegs.filter(l => l._destId === g.destId && l._altIndex === g.altIndex);
                     const groupRoutes = [];
                     groupLegs.forEach(leg => {
                         let routeLike = null;
@@ -2512,13 +2658,14 @@
 
         setConnectMode: (mode) => {
             App.state.connectMode = mode;
+            App.state.tempStart = null;
             const fan = document.getElementById('btn-mode-fanout');
             const chain = document.getElementById('btn-mode-chain');
             if(fan && chain) {
                 fan.classList.toggle('active', mode === 'fanout');
                 chain.classList.toggle('active', mode === 'chain');
             }
-            ui.showToast(mode === 'fanout' ? "起点固定模式：从同一节点发散连多条线" : "接力模式：终点自动成为下一个起点");
+            ui.showToast(mode === 'fanout' ? "起点固定模式：从同一节点发散连多条线" : "接力模式：终点自动成为下一个起点，已重置起点，请先点击新的起点");
         },
 
         setLineType: (t) => {
