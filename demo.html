@@ -2129,6 +2129,24 @@
                 if(v === '4' || v === 'rail') return '#ffcc00';
                 return '#00ff99';
             };
+            const createSimpleLine = (s, e, color, modeStr, baseRoute, leg, weight) => {
+                const pts = [s, e];
+                if(baseRoute) {
+                    baseRoute._navPath = pts;
+                    baseRoute._type = modeStr;
+                }
+                const navLine = new AMap.Polyline({
+                    path: pts,
+                    strokeColor: color,
+                    strokeWeight: typeof weight === 'number' ? weight : 4,
+                    strokeOpacity: 0.9,
+                    showDir: true,
+                    zIndex: 90
+                });
+                App.map.add(navLine);
+                leg._navLine = navLine;
+                navLines.push(navLine);
+            };
             legs.forEach(leg => {
                 const fromId = leg.fromId;
                 const toId = leg.toId;
@@ -2156,6 +2174,7 @@
                         .then(res => res.json())
                         .then(data => {
                             if(!data || data.status !== '1' || !data.route || !Array.isArray(data.route.paths) || !data.route.paths.length) {
+                                createSimpleLine(s, e, color, modeStr, baseRoute, leg, 5);
                                 return null;
                             }
                             const path0 = data.route.paths[0];
@@ -2173,7 +2192,10 @@
                                     pts.push(new AMap.LngLat(lng, lat));
                                 });
                             });
-                            if(pts.length < 2) return null;
+                            if(pts.length < 2) {
+                                createSimpleLine(s, e, color, modeStr, baseRoute, leg, 5);
+                                return null;
+                            }
                             if(baseRoute) {
                                 baseRoute._navPath = pts;
                                 baseRoute._type = modeStr;
@@ -2191,25 +2213,13 @@
                             navLines.push(navLine);
                             return null;
                         })
-                        .catch(() => null);
+                        .catch(() => {
+                            createSimpleLine(s, e, color, modeStr, baseRoute, leg, 5);
+                            return null;
+                        });
                     roadTasks.push(task);
                 } else {
-                    const pts = [s, e];
-                    if(baseRoute) {
-                        baseRoute._navPath = pts;
-                        baseRoute._type = modeStr;
-                    }
-                    const navLine = new AMap.Polyline({
-                        path: pts,
-                        strokeColor: color,
-                        strokeWeight: 4,
-                        strokeOpacity: 0.9,
-                        showDir: true,
-                        zIndex: 90
-                    });
-                    App.map.add(navLine);
-                    leg._navLine = navLine;
-                    navLines.push(navLine);
+                    createSimpleLine(s, e, color, modeStr, baseRoute, leg, 4);
                 }
             });
             if(roadTasks.length) {
