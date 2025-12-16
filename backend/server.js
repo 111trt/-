@@ -9,6 +9,7 @@ const port = process.env.PORT || 3001;
 const CONFIG_FILE = path.join(__dirname, "config.json");
 const SCHEMES_FILE = path.join(__dirname, "schemes.json");
 const AMAP_WEB_KEY = process.env.AMAP_WEB_KEY || "";
+const CONFIG_HISTORY_FILE = path.join(__dirname, "config_history.json");
 
 app.use(cors());
 app.use(express.json());
@@ -23,6 +24,11 @@ const defaultConfig = {
   tariff: {
     crossBorderCost: 500,
     crossBorderDelayHours: 12
+  },
+  weights: {
+    balancedCostWeight: 0.5,
+    balancedTimeWeight: 0.3,
+    balancedCo2Weight: 0.2
   }
 };
 
@@ -64,6 +70,42 @@ function mergeConfig(target, patch) {
       target[key] = value;
     }
   });
+}
+
+function loadConfigHistory() {
+  try {
+    if (!fs.existsSync(CONFIG_HISTORY_FILE)) return [];
+    const raw = fs.readFileSync(CONFIG_HISTORY_FILE, "utf8");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch (e) {
+    console.error("Failed to load config history:", e.message);
+    return [];
+  }
+}
+
+function saveConfigHistory(history) {
+  try {
+    const data = JSON.stringify(history, null, 2);
+    fs.writeFileSync(CONFIG_HISTORY_FILE, data, "utf8");
+  } catch (e) {
+    console.error("Failed to save config history:", e.message);
+  }
+}
+
+function pushConfigHistory(cfg) {
+  const history = loadConfigHistory();
+  const entry = {
+    timestamp: new Date().toISOString(),
+    config: cloneConfig(cfg)
+  };
+  history.push(entry);
+  while (history.length > 20) {
+    history.shift();
+  }
+  saveConfigHistory(history);
 }
 
 function loadSchemesFromFile() {
@@ -141,6 +183,46 @@ function distanceKm(a, b) {
   return r * c;
 }
 
+function callAmapPlaceAround(location, keywords, types, radiusMeters) {
+  return new Promise((resolve, reject) => {
+    if (!AMAP_WEB_KEY) {
+      resolve({ status: "0", info: "AMAP_WEB_KEY not set" });
+      return;
+    }
+    const params = new URLSearchParams({
+      key: AMAP_WEB_KEY,
+      location,
+      keywords,
+      radius: String(radiusMeters || 50000),
+      offset: "5",
+      page: "1",
+      output: "json"
+    });
+    if (types) {
+      params.append("types", types);
+    }
+    const url = "https://restapi.amap.com/v3/place/around?" + params.toString();
+    https
+      .get(url, (resp) => {
+        let data = "";
+        resp.on("data", (chunk) => {
+          data += chunk;
+        });
+        resp.on("end", () => {
+          try {
+            const json = JSON.parse(data || "{}");
+            resolve(json);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      })
+      .on("error", (err) => {
+        reject(err);
+      });
+  });
+}
+
 function normalizeMode(mode) {
   if (!mode) return "road";
   if (mode === "1" || mode === "road") return "road";
@@ -150,8 +232,20 @@ function normalizeMode(mode) {
   return "road";
 }
 
+function normalizeNodeType(t) {
+  if (!t) return "";
+  const v = String(t).toLowerCase();
+  if (v === "port") return "port";
+  if (v === "airport" || v === "air") return "airport";
+  if (v === "rail" || v === "rail_hub") return "rail";
+  if (v === "warehouse") return "warehouse";
+  return v;
+}
+
 function computeLegStats(edge, fromNode, toNode, cfg, events) {
   const mode = normalizeMode(edge.mode);
+  const fromType = normalizeNodeType(fromNode.type);
+  const toType = normalizeNodeType(toNode.type);
   const distance =
     typeof edge.distanceKm === "number"
       ? edge.distanceKm
@@ -166,6 +260,7 @@ function computeLegStats(edge, fromNode, toNode, cfg, events) {
   let cost = distance * tCfg.costPerKm;
   let co2 = distance * tCfg.co2PerKm;
   const affectedEvents = [];
+  let blocked = false;
 
   if (typeof edge.timeHours === "number" && edge.timeHours > 0) {
     timeHours = edge.timeHours;
@@ -193,11 +288,18 @@ function computeLegStats(edge, fromNode, toNode, cfg, events) {
         : { lng: centerObj.lng, lat: centerObj.lat };
       const radiusKm = typeof ev.radiusKm === "number" ? ev.radiusKm : 0;
       if (radiusKm <= 0) return;
+      const allowedModes = Array.isArray(ev.affectedModes)
+        ? ev.affectedModes
+        : null;
+      if (allowedModes && !allowedModes.includes(mode)) return;
       const d = distanceKm(
         { lng: center.lng, lat: center.lat },
         { lng: midPoint.lng, lat: midPoint.lat }
       );
       if (d <= radiusKm) {
+        if (ev.type === "block") {
+          blocked = true;
+        }
         const delayHours =
           typeof ev.delayHours === "number" ? ev.delayHours : 0;
         const costFactor =
@@ -216,7 +318,15 @@ function computeLegStats(edge, fromNode, toNode, cfg, events) {
     });
   }
 
-  return { mode, distanceKm: distance, timeHours, cost, co2, affectedEvents };
+  return {
+    mode,
+    distanceKm: distance,
+    timeHours,
+    cost,
+    co2,
+    affectedEvents,
+    blocked
+  };
 }
 
 function computeWeight(stats, objective) {
@@ -225,9 +335,19 @@ function computeWeight(stats, objective) {
   if (obj === "green") return stats.co2;
   if (obj === "fast") return stats.timeHours;
   if (obj === "balanced") {
-    const a = 0.5;
-    const b = 0.3;
-    const c = 0.2;
+    const cfgWeights = currentConfig.weights || defaultConfig.weights || {};
+    const a =
+      typeof cfgWeights.balancedCostWeight === "number"
+        ? cfgWeights.balancedCostWeight
+        : 0.5;
+    const b =
+      typeof cfgWeights.balancedTimeWeight === "number"
+        ? cfgWeights.balancedTimeWeight
+        : 0.3;
+    const c =
+      typeof cfgWeights.balancedCo2Weight === "number"
+        ? cfgWeights.balancedCo2Weight
+        : 0.2;
     return stats.cost * a + stats.timeHours * b + stats.co2 * c;
   }
   return stats.timeHours;
@@ -244,6 +364,7 @@ function buildGraph(nodes, edges, cfg, objective, events) {
     const fromNode = nodeMap[e.from];
     const toNode = nodeMap[e.to];
     const stats = computeLegStats(e, fromNode, toNode, cfg, events);
+    if (stats.blocked) return;
     const weight = computeWeight(stats, objective);
     if (!adj[e.from]) adj[e.from] = [];
     adj[e.from].push({
@@ -258,6 +379,75 @@ function buildGraph(nodes, edges, cfg, objective, events) {
     });
   });
   return { nodeMap, adj };
+}
+
+async function buildVirtualNodesForPath(nodeMap, legs) {
+  if (!AMAP_WEB_KEY) return [];
+  if (!legs || !Array.isArray(legs) || legs.length === 0) return [];
+  const result = [];
+  const seen = new Set();
+  const addPoi = (poi, type) => {
+    if (!poi || !poi.location) return;
+    const locParts = String(poi.location).split(",");
+    if (locParts.length !== 2) return;
+    const lng = parseFloat(locParts[0]);
+    const lat = parseFloat(locParts[1]);
+    if (!isFinite(lng) || !isFinite(lat)) return;
+    const key = type + "|" + lng.toFixed(6) + "|" + lat.toFixed(6);
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push({
+      id: poi.id || key,
+      name: poi.name || "",
+      lng,
+      lat,
+      type,
+      level: 2,
+      region: "CN",
+      source: "amap"
+    });
+  };
+  for (const leg of legs) {
+    if (!leg || !leg.fromId || !leg.toId) continue;
+    const fromNode = nodeMap[leg.fromId];
+    const toNode = nodeMap[leg.toId];
+    if (!fromNode || !toNode) continue;
+    const mode = normalizeMode(leg.mode);
+    let keywords = null;
+    let types = null;
+    let nodeType = null;
+    if (mode === "sea") {
+      keywords = "港口";
+      nodeType = "port";
+    } else if (mode === "air") {
+      keywords = "机场";
+      types = "150100";
+      nodeType = "airport";
+    } else if (mode === "rail") {
+      keywords = "火车站";
+      types = "150200";
+      nodeType = "rail";
+    }
+    if (!keywords || !nodeType) continue;
+    const midLng = (fromNode.lng + toNode.lng) / 2;
+    const midLat = (fromNode.lat + toNode.lat) / 2;
+    const loc = midLng + "," + midLat;
+    try {
+      const resp = await callAmapPlaceAround(loc, keywords, types, 80000);
+      if (
+        resp &&
+        resp.status === "1" &&
+        Array.isArray(resp.pois) &&
+        resp.pois.length > 0
+      ) {
+        const poi = resp.pois[0];
+        addPoi(poi, nodeType);
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+  return result;
 }
 
 function dijkstra(graph, originId, destinationId) {
@@ -308,13 +498,62 @@ function dijkstra(graph, originId, destinationId) {
 
 function buildDefaultNetwork() {
   const nodes = [
-    { id: "CN_SHANGHAI", name: "上海", lng: 121.5, lat: 31.2, region: "CN" },
-    { id: "CN_CHONGQING", name: "重庆", lng: 106.5, lat: 29.5, region: "CN" },
-    { id: "CN_XIAN", name: "西安", lng: 108.95, lat: 34.27, region: "CN" },
-    { id: "CN_ZHENGZHOU", name: "郑州", lng: 113.65, lat: 34.76, region: "CN" },
-    { id: "EU_DUISBURG", name: "杜伊斯堡", lng: 6.76, lat: 51.43, region: "EU" },
-    { id: "EU_HAMBURG", name: "汉堡", lng: 9.99, lat: 53.55, region: "EU" },
-    { id: "EU_ROTTERDAM", name: "鹿特丹", lng: 4.48, lat: 51.92, region: "EU" }
+    {
+      id: "CN_SHANGHAI",
+      name: "上海",
+      lng: 121.5,
+      lat: 31.2,
+      region: "CN",
+      type: "port"
+    },
+    {
+      id: "CN_CHONGQING",
+      name: "重庆",
+      lng: 106.5,
+      lat: 29.5,
+      region: "CN",
+      type: "rail"
+    },
+    {
+      id: "CN_XIAN",
+      name: "西安",
+      lng: 108.95,
+      lat: 34.27,
+      region: "CN",
+      type: "rail"
+    },
+    {
+      id: "CN_ZHENGZHOU",
+      name: "郑州",
+      lng: 113.65,
+      lat: 34.76,
+      region: "CN",
+      type: "rail"
+    },
+    {
+      id: "EU_DUISBURG",
+      name: "杜伊斯堡",
+      lng: 6.76,
+      lat: 51.43,
+      region: "EU",
+      type: "rail"
+    },
+    {
+      id: "EU_HAMBURG",
+      name: "汉堡",
+      lng: 9.99,
+      lat: 53.55,
+      region: "EU",
+      type: "port"
+    },
+    {
+      id: "EU_ROTTERDAM",
+      name: "鹿特丹",
+      lng: 4.48,
+      lat: 51.92,
+      region: "EU",
+      type: "port"
+    }
   ];
 
   const edges = [
@@ -421,6 +660,7 @@ app.get("/api/amap/driving", (req, res) => {
 
 app.post("/api/config/update", (req, res) => {
   const patch = req.body || {};
+  pushConfigHistory(currentConfig);
   mergeConfig(currentConfig, patch);
   saveConfigToFile(currentConfig);
   res.json({
@@ -430,7 +670,39 @@ app.post("/api/config/update", (req, res) => {
 });
 
 app.post("/api/config/reset", (req, res) => {
+  pushConfigHistory(currentConfig);
   currentConfig = cloneConfig(defaultConfig);
+  saveConfigToFile(currentConfig);
+  res.json({
+    success: true,
+    currentConfig
+  });
+});
+
+app.get("/api/config/history", (req, res) => {
+  const history = loadConfigHistory();
+  res.json({ history });
+});
+
+app.post("/api/config/rollback", (req, res) => {
+  const body = req.body || {};
+  const history = loadConfigHistory();
+  if (!Array.isArray(history) || history.length === 0) {
+    res.status(400).json({ error: "no history available" });
+    return;
+  }
+  let target = null;
+  if (body.timestamp) {
+    target = history.find((h) => h.timestamp === body.timestamp);
+  }
+  if (!target) {
+    target = history[history.length - 1];
+  }
+  if (!target || !target.config) {
+    res.status(400).json({ error: "invalid history entry" });
+    return;
+  }
+  currentConfig = cloneConfig(target.config);
   saveConfigToFile(currentConfig);
   res.json({
     success: true,
@@ -470,8 +742,75 @@ app.post("/api/plan/route", async (req, res) => {
     return;
   }
 
-  const path = dijkstra(graph, originId, destinationId);
+  let path = dijkstra(graph, originId, destinationId);
   if (!path) {
+    const originNode = graph.nodeMap[originId];
+    const destNode = graph.nodeMap[destinationId];
+    if (originNode && destNode) {
+      const modeCounter = {};
+      edges.forEach((e) => {
+        if (
+          e &&
+          (e.from === originId ||
+            e.to === originId ||
+            e.from === destinationId ||
+            e.to === destinationId)
+        ) {
+          const m = normalizeMode(e.mode);
+          modeCounter[m] = (modeCounter[m] || 0) + 1;
+        }
+      });
+      const modePriority = ["road", "rail", "sea", "air"];
+      let fallbackMode = "road";
+      let bestCount = -1;
+      modePriority.forEach((m) => {
+        const c = modeCounter[m] || 0;
+        if (c > bestCount) {
+          bestCount = c;
+          fallbackMode = m;
+        }
+      });
+      const edge = { from: originId, to: destinationId, mode: fallbackMode };
+      const stats = computeLegStats(
+        edge,
+        originNode,
+        destNode,
+        currentConfig,
+        events
+      );
+      if (!stats.blocked) {
+        const leg = {
+          fromId: originId,
+          toId: destinationId,
+          mode: stats.mode,
+          distanceKm: stats.distanceKm,
+          timeHours: stats.timeHours,
+          cost: stats.cost,
+          co2: stats.co2,
+          affectedEvents: stats.affectedEvents || []
+        };
+        let virtualNodes = [];
+        try {
+          virtualNodes = await buildVirtualNodesForPath(graph.nodeMap, [leg]);
+        } catch (e) {
+          virtualNodes = [];
+        }
+        res.json({
+          objective,
+          originId,
+          destinationId,
+          summary: {
+            totalTimeHours: stats.timeHours,
+            totalCost: stats.cost,
+            totalCo2: stats.co2,
+            totalDistanceKm: stats.distanceKm
+          },
+          legs: [leg],
+          nodes: virtualNodes
+        });
+        return;
+      }
+    }
     res.status(404).json({
       error: "no path found between origin and destination"
     });
@@ -499,6 +838,13 @@ app.post("/api/plan/route", async (req, res) => {
     };
   });
 
+  let virtualNodes = [];
+  try {
+    virtualNodes = await buildVirtualNodesForPath(graph.nodeMap, legs);
+  } catch (e) {
+    virtualNodes = [];
+  }
+
   res.json({
     objective,
     originId,
@@ -509,7 +855,8 @@ app.post("/api/plan/route", async (req, res) => {
       totalCo2,
       totalDistanceKm: totalDistance
     },
-    legs
+    legs,
+    nodes: virtualNodes
   });
 });
 
@@ -523,7 +870,8 @@ app.get("/api/network/schemes", (req, res) => {
       nodesCount: Array.isArray(s.nodes) ? s.nodes.length : 0,
       connectionsCount: Array.isArray(s.connections)
         ? s.connections.length
-        : 0
+        : 0,
+      stats: s.stats || null
     };
   });
   res.json({ schemes: list });
@@ -556,7 +904,8 @@ app.post("/api/network/schemes", (req, res) => {
     params: body.params || null,
     planStartName: body.planStartName || null,
     planEndName: body.planEndName || null,
-    savedAt: now
+    savedAt: now,
+    stats: body.stats || null
   };
   schemes[name] = scheme;
   saveSchemesToFile(schemes);
@@ -573,6 +922,28 @@ app.delete("/api/network/schemes/:name", (req, res) => {
   delete schemes[name];
   saveSchemesToFile(schemes);
   res.json({ success: true });
+});
+
+app.post("/api/network/apply-scheme", (req, res) => {
+  const body = req.body || {};
+  const name = typeof body.name === "string" && body.name.trim()
+    ? body.name.trim()
+    : "default";
+  const schemes = loadSchemesFromFile();
+  const now = new Date().toISOString();
+  const scheme = {
+    name,
+    nodes: Array.isArray(body.nodes) ? body.nodes : [],
+    connections: Array.isArray(body.connections) ? body.connections : [],
+    params: body.params || null,
+    planStartName: body.planStartName || null,
+    planEndName: body.planEndName || null,
+    savedAt: now,
+    stats: body.stats || null
+  };
+  schemes[name] = scheme;
+  saveSchemesToFile(schemes);
+  res.json({ success: true, scheme });
 });
 
 app.listen(port, () => {
