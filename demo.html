@@ -1793,12 +1793,18 @@
 
                 const activeRoutes = [];
                 legs.forEach(leg => {
+                    let routeLike = null;
                     const conn = App.connections.find(c =>
                         (c.from === leg.fromId && c.to === leg.toId) ||
                         (c.from === leg.toId && c.to === leg.fromId)
                     );
                     if(conn && conn.route) {
-                        activeRoutes.push(conn.route);
+                        routeLike = conn.route;
+                    } else if (leg._navLine) {
+                        routeLike = leg._navLine;
+                    }
+                    if(routeLike && !activeRoutes.includes(routeLike)) {
+                        activeRoutes.push(routeLike);
                     }
                 });
                 App.state.lastPlanRoutes = activeRoutes;
@@ -2127,11 +2133,6 @@
                 const fromId = leg.fromId;
                 const toId = leg.toId;
                 if(!fromId || !toId) return;
-                const conn = App.connections.find(c =>
-                    (c.from === fromId && c.to === toId) ||
-                    (c.from === toId && c.to === fromId)
-                );
-                if(!conn || !conn.route) return;
                 const startMarker = logic.findMarkerByName(fromId);
                 const endMarker = logic.findMarkerByName(toId);
                 if(!startMarker || !endMarker) return;
@@ -2142,6 +2143,11 @@
                 const modeStr = typeof mode === 'number' ? String(mode) : String(mode || '');
                 const color = colorByMode(modeStr);
                 const isRoad = (modeStr === 'road' || modeStr === '1');
+                const conn = App.connections.find(c =>
+                    (c.from === fromId && c.to === toId) ||
+                    (c.from === toId && c.to === fromId)
+                );
+                const baseRoute = conn && conn.route ? conn.route : null;
                 if(isRoad) {
                     const origin = encodeURIComponent(s.getLng() + ',' + s.getLat());
                     const destination = encodeURIComponent(e.getLng() + ',' + e.getLat());
@@ -2168,7 +2174,10 @@
                                 });
                             });
                             if(pts.length < 2) return null;
-                            conn.route._navPath = pts;
+                            if(baseRoute) {
+                                baseRoute._navPath = pts;
+                                baseRoute._type = modeStr;
+                            }
                             const navLine = new AMap.Polyline({
                                 path: pts,
                                 strokeColor: color,
@@ -2178,6 +2187,7 @@
                                 zIndex: 90
                             });
                             App.map.add(navLine);
+                            leg._navLine = navLine;
                             navLines.push(navLine);
                             return null;
                         })
@@ -2185,7 +2195,10 @@
                     roadTasks.push(task);
                 } else {
                     const pts = [s, e];
-                    conn.route._navPath = pts;
+                    if(baseRoute) {
+                        baseRoute._navPath = pts;
+                        baseRoute._type = modeStr;
+                    }
                     const navLine = new AMap.Polyline({
                         path: pts,
                         strokeColor: color,
@@ -2195,6 +2208,7 @@
                         zIndex: 90
                     });
                     App.map.add(navLine);
+                    leg._navLine = navLine;
                     navLines.push(navLine);
                 }
             });
