@@ -1,8 +1,14 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
+const https = require("https");
 
 const app = express();
 const port = process.env.PORT || 3001;
+const CONFIG_FILE = path.join(__dirname, "config.json");
+const SCHEMES_FILE = path.join(__dirname, "schemes.json");
+const AMAP_WEB_KEY = process.env.AMAP_WEB_KEY || "";
 
 app.use(cors());
 app.use(express.json());
@@ -20,10 +26,32 @@ const defaultConfig = {
   }
 };
 
-let currentConfig = cloneConfig(defaultConfig);
+let currentConfig = loadConfigFromFile() || cloneConfig(defaultConfig);
 
 function cloneConfig(obj) {
   return JSON.parse(JSON.stringify(obj));
+}
+
+function loadConfigFromFile() {
+  try {
+    if (!fs.existsSync(CONFIG_FILE)) return null;
+    const raw = fs.readFileSync(CONFIG_FILE, "utf8");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch (e) {
+    console.error("Failed to load config from file:", e.message);
+    return null;
+  }
+}
+
+function saveConfigToFile(cfg) {
+  try {
+    const data = JSON.stringify(cfg, null, 2);
+    fs.writeFileSync(CONFIG_FILE, data, "utf8");
+  } catch (e) {
+    console.error("Failed to save config to file:", e.message);
+  }
 }
 
 function mergeConfig(target, patch) {
@@ -35,6 +63,64 @@ function mergeConfig(target, patch) {
     } else {
       target[key] = value;
     }
+  });
+}
+
+function loadSchemesFromFile() {
+  try {
+    if (!fs.existsSync(SCHEMES_FILE)) return {};
+    const raw = fs.readFileSync(SCHEMES_FILE, "utf8");
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed;
+    return {};
+  } catch (e) {
+    console.error("Failed to load schemes from file:", e.message);
+    return {};
+  }
+}
+
+function saveSchemesToFile(schemes) {
+  try {
+    const data = JSON.stringify(schemes, null, 2);
+    fs.writeFileSync(SCHEMES_FILE, data, "utf8");
+  } catch (e) {
+    console.error("Failed to save schemes to file:", e.message);
+  }
+}
+
+function callAmapDriving(origin, destination) {
+  return new Promise((resolve, reject) => {
+    if (!AMAP_WEB_KEY) {
+      reject(new Error("AMAP_WEB_KEY not set"));
+      return;
+    }
+    const query = new URLSearchParams({
+      key: AMAP_WEB_KEY,
+      origin,
+      destination,
+      extensions: "base",
+      strategy: "0"
+    }).toString();
+    const url = "https://restapi.amap.com/v3/direction/driving?" + query;
+    https
+      .get(url, (resp) => {
+        let data = "";
+        resp.on("data", (chunk) => {
+          data += chunk;
+        });
+        resp.on("end", () => {
+          try {
+            const json = JSON.parse(data || "{}");
+            resolve(json);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      })
+      .on("error", (err) => {
+        reject(err);
+      });
   });
 }
 
@@ -64,7 +150,7 @@ function normalizeMode(mode) {
   return "road";
 }
 
-function computeLegStats(edge, fromNode, toNode, cfg) {
+function computeLegStats(edge, fromNode, toNode, cfg, events) {
   const mode = normalizeMode(edge.mode);
   const distance =
     typeof edge.distanceKm === "number"
@@ -79,13 +165,58 @@ function computeLegStats(edge, fromNode, toNode, cfg) {
   let timeHours = distance / speed;
   let cost = distance * tCfg.costPerKm;
   let co2 = distance * tCfg.co2PerKm;
+  const affectedEvents = [];
+
+  if (typeof edge.timeHours === "number" && edge.timeHours > 0) {
+    timeHours = edge.timeHours;
+  }
+  if (typeof edge.cost === "number" && edge.cost > 0) {
+    cost = edge.cost;
+  }
 
   if (fromNode.region && toNode.region && fromNode.region !== toNode.region) {
     cost += cfg.tariff.crossBorderCost;
     timeHours += cfg.tariff.crossBorderDelayHours;
   }
 
-  return { mode, distanceKm: distance, timeHours, cost, co2 };
+  if (Array.isArray(events) && events.length > 0) {
+    const midLng = (fromNode.lng + toNode.lng) / 2;
+    const midLat = (fromNode.lat + toNode.lat) / 2;
+    const midPoint = { lng: midLng, lat: midLat };
+    events.forEach((ev) => {
+      if (!ev || typeof ev !== "object") return;
+      const centerArr = Array.isArray(ev.center) ? ev.center : null;
+      const centerObj = ev.center && !Array.isArray(ev.center) ? ev.center : null;
+      if (!centerArr && !centerObj) return;
+      const center = centerArr
+        ? { lng: centerArr[0], lat: centerArr[1] }
+        : { lng: centerObj.lng, lat: centerObj.lat };
+      const radiusKm = typeof ev.radiusKm === "number" ? ev.radiusKm : 0;
+      if (radiusKm <= 0) return;
+      const d = distanceKm(
+        { lng: center.lng, lat: center.lat },
+        { lng: midPoint.lng, lat: midPoint.lat }
+      );
+      if (d <= radiusKm) {
+        const delayHours =
+          typeof ev.delayHours === "number" ? ev.delayHours : 0;
+        const costFactor =
+          typeof ev.costFactor === "number" && ev.costFactor > 0
+            ? ev.costFactor
+            : 1;
+        if (delayHours > 0) {
+          timeHours += delayHours;
+        }
+        cost *= costFactor;
+        const id = ev.id || ev.type || "event";
+        if (!affectedEvents.includes(id)) {
+          affectedEvents.push(id);
+        }
+      }
+    });
+  }
+
+  return { mode, distanceKm: distance, timeHours, cost, co2, affectedEvents };
 }
 
 function computeWeight(stats, objective) {
@@ -102,7 +233,7 @@ function computeWeight(stats, objective) {
   return stats.timeHours;
 }
 
-function buildGraph(nodes, edges, cfg, objective) {
+function buildGraph(nodes, edges, cfg, objective, events) {
   const nodeMap = {};
   nodes.forEach((n) => {
     nodeMap[n.id] = n;
@@ -112,7 +243,7 @@ function buildGraph(nodes, edges, cfg, objective) {
     if (!nodeMap[e.from] || !nodeMap[e.to]) return;
     const fromNode = nodeMap[e.from];
     const toNode = nodeMap[e.to];
-    const stats = computeLegStats(e, fromNode, toNode, cfg);
+    const stats = computeLegStats(e, fromNode, toNode, cfg, events);
     const weight = computeWeight(stats, objective);
     if (!adj[e.from]) adj[e.from] = [];
     adj[e.from].push({
@@ -122,6 +253,7 @@ function buildGraph(nodes, edges, cfg, objective) {
       timeHours: stats.timeHours,
       cost: stats.cost,
       co2: stats.co2,
+      affectedEvents: stats.affectedEvents,
       weight
     });
   });
@@ -199,6 +331,66 @@ function buildDefaultNetwork() {
   return { nodes, edges };
 }
 
+async function enrichEdgesWithAmap(nodes, edges) {
+  if (!AMAP_WEB_KEY) return edges;
+  const nodeMap = {};
+  nodes.forEach((n) => {
+    nodeMap[n.id] = n;
+  });
+  const tasks = edges.map(async (e) => {
+    const mode = normalizeMode(e.mode);
+    if (mode !== "road") return e;
+    if (
+      typeof e.distanceKm === "number" &&
+      typeof e.timeHours === "number" &&
+      e.distanceKm > 0 &&
+      e.timeHours > 0
+    ) {
+      return e;
+    }
+    const fromNode = nodeMap[e.from];
+    const toNode = nodeMap[e.to];
+    if (!fromNode || !toNode) return e;
+    const origin = `${fromNode.lng},${fromNode.lat}`;
+    const destination = `${toNode.lng},${toNode.lat}`;
+    try {
+      const result = await callAmapDriving(origin, destination);
+      if (
+        result &&
+        result.status === "1" &&
+        result.route &&
+        Array.isArray(result.route.paths) &&
+        result.route.paths.length > 0
+      ) {
+        const path = result.route.paths[0];
+        const d =
+          path.distance && !isNaN(Number(path.distance))
+            ? Number(path.distance) / 1000
+            : null;
+        const t =
+          path.duration && !isNaN(Number(path.duration))
+            ? Number(path.duration) / 3600
+            : null;
+        if (d && d > 0) {
+          e.distanceKm = d;
+        }
+        if (t && t > 0) {
+          e.timeHours = t;
+        }
+      }
+    } catch (err) {
+      console.error(
+        "Failed to fetch AMap driving data for edge",
+        e.from,
+        e.to,
+        err.message
+      );
+    }
+    return e;
+  });
+  return Promise.all(tasks);
+}
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
@@ -210,9 +402,27 @@ app.get("/api/config/get", (req, res) => {
   });
 });
 
+app.get("/api/amap/driving", (req, res) => {
+  const origin = req.query.origin;
+  const destination = req.query.destination;
+  if (!origin || !destination) {
+    res.status(400).json({ error: "origin and destination are required" });
+    return;
+  }
+  callAmapDriving(origin, destination)
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((err) => {
+      console.error("AMap driving error:", err.message);
+      res.status(500).json({ error: "amap driving request failed" });
+    });
+});
+
 app.post("/api/config/update", (req, res) => {
   const patch = req.body || {};
   mergeConfig(currentConfig, patch);
+  saveConfigToFile(currentConfig);
   res.json({
     success: true,
     currentConfig
@@ -221,19 +431,21 @@ app.post("/api/config/update", (req, res) => {
 
 app.post("/api/config/reset", (req, res) => {
   currentConfig = cloneConfig(defaultConfig);
+  saveConfigToFile(currentConfig);
   res.json({
     success: true,
     currentConfig
   });
 });
 
-app.post("/api/plan/route", (req, res) => {
+app.post("/api/plan/route", async (req, res) => {
   const body = req.body || {};
   const objective = body.objective || "fast";
   let nodes = body.nodes;
   let edges = body.edges;
   let originId = body.originId;
   let destinationId = body.destinationId;
+  const events = Array.isArray(body.events) ? body.events : [];
 
   if (!nodes || !edges || !originId || !destinationId) {
     const def = buildDefaultNetwork();
@@ -243,7 +455,13 @@ app.post("/api/plan/route", (req, res) => {
     destinationId = "EU_DUISBURG";
   }
 
-  const graph = buildGraph(nodes, edges, currentConfig, objective);
+  try {
+    edges = await enrichEdgesWithAmap(nodes, edges);
+  } catch (e) {
+    console.error("enrichEdgesWithAmap error:", e.message);
+  }
+
+  const graph = buildGraph(nodes, edges, currentConfig, objective, events);
 
   if (!graph.nodeMap[originId] || !graph.nodeMap[destinationId]) {
     res.status(400).json({
@@ -276,7 +494,8 @@ app.post("/api/plan/route", (req, res) => {
       distanceKm: step.edge.distanceKm,
       timeHours: step.edge.timeHours,
       cost: step.edge.cost,
-      co2: step.edge.co2
+      co2: step.edge.co2,
+      affectedEvents: step.edge.affectedEvents || []
     };
   });
 
@@ -294,7 +513,68 @@ app.post("/api/plan/route", (req, res) => {
   });
 });
 
+app.get("/api/network/schemes", (req, res) => {
+  const schemes = loadSchemesFromFile();
+  const list = Object.keys(schemes).map((name) => {
+    const s = schemes[name];
+    return {
+      name,
+      savedAt: s.savedAt || null,
+      nodesCount: Array.isArray(s.nodes) ? s.nodes.length : 0,
+      connectionsCount: Array.isArray(s.connections)
+        ? s.connections.length
+        : 0
+    };
+  });
+  res.json({ schemes: list });
+});
+
+app.get("/api/network/schemes/:name", (req, res) => {
+  const name = req.params.name;
+  const schemes = loadSchemesFromFile();
+  const scheme = schemes[name];
+  if (!scheme) {
+    res.status(404).json({ error: "scheme not found" });
+    return;
+  }
+  res.json(scheme);
+});
+
+app.post("/api/network/schemes", (req, res) => {
+  const body = req.body || {};
+  const name = body.name;
+  if (!name || typeof name !== "string") {
+    res.status(400).json({ error: "scheme name is required" });
+    return;
+  }
+  const schemes = loadSchemesFromFile();
+  const now = new Date().toISOString();
+  const scheme = {
+    name,
+    nodes: Array.isArray(body.nodes) ? body.nodes : [],
+    connections: Array.isArray(body.connections) ? body.connections : [],
+    params: body.params || null,
+    planStartName: body.planStartName || null,
+    planEndName: body.planEndName || null,
+    savedAt: now
+  };
+  schemes[name] = scheme;
+  saveSchemesToFile(schemes);
+  res.json({ success: true, scheme });
+});
+
+app.delete("/api/network/schemes/:name", (req, res) => {
+  const name = req.params.name;
+  const schemes = loadSchemesFromFile();
+  if (!schemes[name]) {
+    res.status(404).json({ error: "scheme not found" });
+    return;
+  }
+  delete schemes[name];
+  saveSchemesToFile(schemes);
+  res.json({ success: true });
+});
+
 app.listen(port, () => {
   console.log(`LogiGlobe backend listening on port ${port}`);
 });
-

@@ -35,9 +35,8 @@
         .back-btn { background: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink); padding: 5px 15px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; transition: 0.3s; }
         .back-btn:hover { background: var(--neon-pink); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
         
-        /* SIDEBAR */
-        .sidebar-container { position: absolute; top: 80px; left: 20px; bottom: 340px; width: 260px; pointer-events: none; display: flex; flex-direction: column; z-index: 1050; overflow-y: auto; }
-        .sidebar { position: relative; width: 100%; padding: 15px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; box-sizing: border-box; }
+        .sidebar-container { position: absolute; top: 80px; left: 20px; bottom: 340px; width: 260px; pointer-events: none; display: flex; flex-direction: column; z-index: 1050; }
+        .sidebar { position: relative; width: 100%; padding: 15px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; box-sizing: border-box; max-height: 100%; overflow-y: auto; }
         .tool-group h3 { font-size: 0.8rem; color: var(--neon-blue); border-bottom: 1px solid rgba(0,210,255,0.3); padding-bottom: 5px; margin: 0 0 10px 0; letter-spacing: 1px; }
         .tool-btn { width: 100%; background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); color: #aaccff; padding: 10px; cursor: pointer; text-align: left; margin-bottom: 5px; transition: 0.2s; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
         .tool-btn:hover { background: rgba(0, 210, 255, 0.15); border-color: var(--neon-blue); color: #fff; }
@@ -218,6 +217,8 @@
                 <div class="tool-group">
                     <h3>数据与输出 (I/O)</h3>
                     <div class="tool-btn phase2-only" id="btn-cockpit" onclick="ui.toggleCockpit()"><span class="tool-icon">🖥️</span> 全屏控制塔</div>
+                    <div class="tool-btn" id="btn-save-scheme" onclick="io.saveScheme()"><span class="tool-icon">💾</span> 保存当前方案</div>
+                    <div class="tool-btn" id="btn-load-scheme" onclick="io.loadScheme()"><span class="tool-icon">📂</span> 加载已保存方案</div>
                     <div class="tool-btn phase2-only" id="btn-export" onclick="io.exportReport()"><span class="tool-icon">📊</span> 导出分析报告</div>
                 </div>
             </div>
@@ -644,11 +645,18 @@
         setTimeout(() => {
             document.getElementById('intro-layer').style.display = 'none';
             document.getElementById('main-ui').style.display = 'block';
-            
-            // Try to add data only if map is valid
             if(App.map) {
                 logic.addMockData();
                 App.map.on('zoomchange', logic.updateLOD);
+                try {
+                    const raw = localStorage.getItem('logiglobe_last_plan_endpoints');
+                    if(raw) {
+                        const data = JSON.parse(raw);
+                        const findMarker = (name) => App.nodes.find(m => (m.getExtData() || {}).name === name);
+                        if(data.startName) App.state.planStart = findMarker(data.startName) || null;
+                        if(data.endName) App.state.planEnd = findMarker(data.endName) || null;
+                    }
+                } catch (e) {}
             }
         }, 1000);
     }
@@ -683,6 +691,9 @@
             App.state.routeCounts = {};
             App.state.tempStart = null;
             App.state.pendingPlan = null;
+            App.state.planStart = null;
+            App.state.planEnd = null;
+            App.state.lastPlanRoutes = [];
             App.state.stats = { cost: 0, co2: 0, dist: 0, time: 0 };
         }, 1000);
     }
@@ -716,8 +727,6 @@
 
             marker.on('click', () => logic.handleNodeClick(marker));
             marker.on('rightclick', (e) => {
-                 // Prevent default browser menu
-                 // But AMap rightclick event object is different, usually we don't need preventDefault on map event
                  logic.showContextMenu(marker, e);
             });
 
@@ -725,6 +734,15 @@
             App.nodes.push(marker);
             logic.updateLOD();
             ui.updateStats();
+        },
+
+        persistPlanEndpoints: () => {
+            try {
+                const startName = App.state.planStart ? App.state.planStart.getExtData().name : null;
+                const endName = App.state.planEnd ? App.state.planEnd.getExtData().name : null;
+                const data = { startName, endName };
+                localStorage.setItem('logiglobe_last_plan_endpoints', JSON.stringify(data));
+            } catch (e) {}
         },
 
         showContextMenu: (marker, e) => {
@@ -737,10 +755,12 @@
             }, 1);
             contextMenu.addItem("设为规划起点 (Plan Start)", () => {
                 App.state.planStart = marker;
+                logic.persistPlanEndpoints();
                 ui.showToast(`AI 规划起点: ${marker.getExtData().name}`);
             }, 2);
             contextMenu.addItem("设为规划终点 (Plan End)", () => {
                 App.state.planEnd = marker;
+                logic.persistPlanEndpoints();
                 ui.showToast(`AI 规划终点: ${marker.getExtData().name}`);
             }, 3);
             contextMenu.open(App.map, marker.getPosition());
@@ -1134,23 +1154,35 @@
         },
 
         playPlanAnimation: () => {
-            if(!App.map || App.routes.length === 0) {
+            const routes = (App.state.lastPlanRoutes && App.state.lastPlanRoutes.length) ? App.state.lastPlanRoutes : App.routes;
+            if(!App.map || routes.length === 0) {
                 ui.showToast("暂无可演示的线路");
                 return;
             }
             let index = 0;
-            const total = App.routes.length;
+            const total = routes.length;
             const step = () => {
-                App.routes.forEach(r => visuals.setRouteActive(r, false));
-                const route = App.routes[index];
+                routes.forEach(r => visuals.setRouteActive(r, false));
+                const route = routes[index];
                 visuals.setRouteActive(route, true);
-                index += 1;
-                if(index < total) {
-                    setTimeout(step, 1200);
+                const finishSegment = () => {
+                    index += 1;
+                    if(index < total) {
+                        setTimeout(step, 800);
+                    } else {
+                        setTimeout(() => {
+                            routes.forEach(r => visuals.setRouteActive(r, false));
+                            ui.showToast("AI 路径演示已完成");
+                        }, 800);
+                    }
+                };
+                if(route && route._seaPath && route._seaPath.length) {
+                    const pathArr = route._seaPath.map(p => Array.isArray(p) ? new AMap.LngLat(p[0], p[1]) : p);
+                    visuals.startFlowPolyline(pathArr, route._type || '2', finishSegment);
+                } else if(route && route._p1 && route._p2 && route._cp) {
+                    visuals.startFlow(route._p1, route._p2, route._cp, route._type || '1', { loop: false, onComplete: finishSegment });
                 } else {
-                    setTimeout(() => {
-                        App.routes.forEach(r => visuals.setRouteActive(r, false));
-                    }, 1500);
+                    finishSegment();
                 }
             };
             ui.showToast("AI 分步骤路径演示开始");
@@ -1158,7 +1190,7 @@
         },
 
         clearAll: () => {
-            App.map.clearMap();
+            if(App.map) App.map.clearMap();
             App.nodes = [];
             App.routes = [];
             App.connections = [];
@@ -1166,6 +1198,9 @@
             App.state.routeCounts = {};
             App.state.tempStart = null;
             App.state.pendingPlan = null;
+            App.state.planStart = null;
+            App.state.planEnd = null;
+            App.state.lastPlanRoutes = [];
             ui.updateStats();
         },
 
@@ -1243,13 +1278,10 @@
             const p1 = Array.isArray(s) ? new AMap.LngLat(s[0], s[1]) : s;
             const p2 = Array.isArray(e) ? new AMap.LngLat(e[0], e[1]) : e;
             
-            // Control Point
             const dx = p2.getLng() - p1.getLng();
             const dy = p2.getLat() - p1.getLat();
-            // Prevent zero-length route error
             if(Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return;
 
-            // SPECIAL ROUTING FOR SEA (Type 2)
             if (type === '2') {
                 const waypoints = visuals.getSeaPath(p1, p2);
                 if (waypoints) {
@@ -1261,13 +1293,14 @@
                     });
                     polyline._baseColor = color;
                     polyline._baseWeight = 3;
+                    polyline._seaPath = waypoints;
+                    polyline._type = type;
                     App.map.add(polyline);
                     App.routes.push(polyline);
                     return polyline;
                 }
             }
 
-            // Default Bezier for Air/Road/Rail or non-complex Sea
             const mid = [ (p1.getLng()+p2.getLng())/2, (p1.getLat()+p2.getLat())/2 ];
             const cp = [ mid[0] - dy*arch, mid[1] + dx*arch ];
 
@@ -1282,24 +1315,36 @@
             App.map.add(curve);
             curve._baseColor = color;
             curve._baseWeight = 3;
+            curve._p1 = p1;
+            curve._p2 = p2;
+            curve._cp = cp;
+            curve._type = type;
             App.routes.push(curve);
             return curve;
         },
 
-        startFlowPolyline: (pathArr, type) => {
+        startFlowPolyline: (pathArr, type, onComplete) => {
+            if (!Array.isArray(pathArr) || pathArr.length === 0) return;
             let icon = '🚢';
             let speed = 5000;
+            if(type==='1') { icon='🚚'; speed=5000; }
+            if(type==='2') { icon='🚢'; speed=3000; }
+            if(type==='3') { icon='✈️'; speed=4000; }
+            if(type==='4') { icon='🚂'; speed=4000; }
             const marker = new AMap.Marker({
                 map: App.map, position: pathArr[0],
                 content: `<div style="font-size:16px; filter:drop-shadow(0 0 5px cyan);">${icon}</div>`,
                 offset: new AMap.Pixel(-8, -8),
                 zIndex: 200
             });
-            marker.moveAlong(pathArr, speed, k=>k, true); // Loop = true
+            marker.on('moveend', () => {
+                marker.setMap(null);
+                if(typeof onComplete === 'function') onComplete();
+            });
+            marker.moveAlong(pathArr, speed, k=>k, false);
         },
 
-        startFlow: (p1, p2, cp, type) => {
-            // Safety check: ensure all coordinates are valid numbers
+        startFlow: (p1, p2, cp, type, options) => {
             if (!p1 || !p2 || !cp || 
                 isNaN(p1.getLng()) || isNaN(p1.getLat()) ||
                 isNaN(p2.getLng()) || isNaN(p2.getLat()) ||
@@ -1308,11 +1353,15 @@
                 return;
             }
 
+            const cfg = options || {};
+            const loop = cfg.loop !== false;
+            const onComplete = cfg.onComplete;
+
             let icon = '✈️';
             let speed = 10000;
-            if(type=='1') { icon='🚚'; speed=5000; }
-            if(type=='2') { icon='🚢'; speed=3000; }
-            if(type=='4') { icon='🚂'; speed=4000; }
+            if(type==='1') { icon='🚚'; speed=5000; }
+            if(type==='2') { icon='🚢'; speed=3000; }
+            if(type==='4') { icon='🚂'; speed=4000; }
 
             const path = [];
             for(let t=0; t<=1; t+=0.02) {
@@ -1322,7 +1371,6 @@
                     console.warn("Invalid interpolated point", x, y);
                     return;
                 }
-                // Use AMap.LngLat object strictly for moveAlong
                 path.push(new AMap.LngLat(x, y));
             }
 
@@ -1333,18 +1381,21 @@
                 zIndex: 200
             });
 
-            function loop() {
-                // Double check map and marker existence
+            const moveOnce = () => {
                 if(!App.map || !marker.getMap()) return;
-                
                 marker.stopMove();
                 marker.setPosition(path[0]);
                 marker.moveAlong(path, speed, k=>k, false);
-            }
+            };
             marker.on('moveend', () => {
-                 if(App.map && marker.getMap()) setTimeout(loop, 1000);
+                 if(loop) {
+                    if(App.map && marker.getMap()) setTimeout(moveOnce, 1000);
+                 } else {
+                    marker.setMap(null);
+                    if(typeof onComplete === 'function') onComplete();
+                 }
             });
-            loop();
+            moveOnce();
         },
 
         setRouteActive: (route, active) => {
@@ -1673,6 +1724,99 @@
             link.click();
             document.body.removeChild(link);
             ui.showToast("报告已下载 (CSV)");
+        },
+
+        saveScheme: () => {
+            if(!App.map) { ui.showToast("地图尚未初始化"); return; }
+            const name = prompt("请输入要保存的方案名称");
+            if(!name) { ui.showToast("已取消保存"); return; }
+            const nodes = App.nodes.map(marker => {
+                const pos = marker.getPosition();
+                const ext = marker.getExtData() || {};
+                return {
+                    name: ext.name,
+                    lng: pos.getLng(),
+                    lat: pos.getLat(),
+                    level: ext.level,
+                    region: ext.region
+                };
+            });
+            const connections = App.connections.map(c => ({
+                from: c.from,
+                to: c.to,
+                type: c.type
+            }));
+            const planStartName = App.state.planStart ? App.state.planStart.getExtData().name : null;
+            const planEndName = App.state.planEnd ? App.state.planEnd.getExtData().name : null;
+            const scheme = {
+                name,
+                nodes,
+                connections,
+                params: App.state.params,
+                planStartName,
+                planEndName,
+                savedAt: new Date().toISOString()
+            };
+            const key = "logiglobe_schemes_v1";
+            let list = [];
+            try {
+                const raw = localStorage.getItem(key);
+                if(raw) list = JSON.parse(raw) || [];
+            } catch(e) {}
+            const idx = list.findIndex(s => s.name === name);
+            if(idx >= 0) list[idx] = scheme; else list.push(scheme);
+            try {
+                localStorage.setItem(key, JSON.stringify(list));
+                ui.showToast("方案已保存: " + name);
+            } catch(e) {
+                ui.showToast("方案保存失败");
+            }
+        },
+
+        loadScheme: () => {
+            const key = "logiglobe_schemes_v1";
+            let list = [];
+            try {
+                const raw = localStorage.getItem(key);
+                if(raw) list = JSON.parse(raw) || [];
+            } catch(e) {}
+            if(!list.length) {
+                ui.showToast("暂无已保存方案");
+                return;
+            }
+            const names = list.map(s => s.name).join(", ");
+            const name = prompt("请输入要加载的方案名称:\n" + names);
+            if(!name) {
+                ui.showToast("已取消加载");
+                return;
+            }
+            const scheme = list.find(s => s.name === name);
+            if(!scheme) {
+                ui.showToast("未找到同名方案");
+                return;
+            }
+            logic.clearAll();
+            scheme.nodes.forEach(n => {
+                const pos = new AMap.LngLat(n.lng, n.lat);
+                logic.addNode(n.name, pos, n.level, n.region);
+            });
+            const findMarker = (nodeName) => App.nodes.find(m => (m.getExtData() || {}).name === nodeName);
+            scheme.connections.forEach(c => {
+                const s = findMarker(c.from);
+                const e = findMarker(c.to);
+                if(s && e) {
+                    App.state.currentLineType = c.type;
+                    logic.createConnection(s, e);
+                }
+            });
+            if(scheme.params) {
+                App.state.params = scheme.params;
+                ui.syncParamPanel();
+            }
+            App.state.planStart = scheme.planStartName ? findMarker(scheme.planStartName) : null;
+            App.state.planEnd = scheme.planEndName ? findMarker(scheme.planEndName) : null;
+            ui.updateStats();
+            ui.showToast("方案已加载: " + name);
         }
     };
 
