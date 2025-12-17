@@ -1,11 +1,24 @@
 version: '3'
 services:
-  logiglobe-pro:
+  logiglobe-frontend:
     build: .
-    image: logiglobe-pro:latest
-    container_name: logiglobe-pro
+    image: logiglobe-frontend:latest
+    container_name: logiglobe-frontend
     restart: always
     ports:
       - "80:80"
     volumes:
       - ./html:/usr/share/nginx/html
+
+  logiglobe-backend:
+    build: ../backend
+    image: logiglobe-backend:latest
+    container_name: logiglobe-backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - AMAP_WEB_KEY=450af30412a9e5534649bbd6e1d56061
+    volumes:
+      - ./backend-data:/app

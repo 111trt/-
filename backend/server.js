@@ -8,7 +8,8 @@ const app = express();
 const port = process.env.PORT || 3001;
 const CONFIG_FILE = path.join(__dirname, "config.json");
 const SCHEMES_FILE = path.join(__dirname, "schemes.json");
-const AMAP_WEB_KEY = process.env.AMAP_WEB_KEY || "";
+// Default key provided by user, can be overridden by env var
+const AMAP_WEB_KEY = process.env.AMAP_WEB_KEY || "450af30412a9e5534649bbd6e1d56061";
 const CONFIG_HISTORY_FILE = path.join(__dirname, "config_history.json");
 
 app.use(cors());

@@ -179,7 +179,7 @@
     <script src="js/three.min.js"></script>
     <script type="text/javascript">window._AMapSecurityConfig = { securityJsCode: '3c1e92c638ba2d5ac175ac5ec49928fd' }</script>
     <!-- Use HTTPS for AMap -->
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=fc4cff1c140271ad4b1479b2cd3ff216&plugin=AMap.MoveAnimation,AMap.BezierCurve,AMap.GeometryUtil"></script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=fc4cff1c140271ad4b1479b2cd3ff216&plugin=AMap.MoveAnimation,AMap.BezierCurve,AMap.GeometryUtil,AMap.Driving"></script>
 </head>
 <body>
 <div id="app">
@@ -452,6 +452,12 @@
 
     <div id="param-panel" class="ui-panel param-panel" style="display:none;">
         <h3 class="param-title">参数面板 (Parameters)</h3>
+        <div class="param-section">
+            <div class="param-label">
+                <span>后端地址 (Backend URL)</span>
+            </div>
+            <input id="param-backend-url" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid #00d2ff; color:#fff; padding:5px;" type="text" value="http://121.41.69.91:3001" onchange="App.state.backendBaseUrl = this.value; ui.showToast('后端地址已更新');">
+        </div>
         <div class="param-section">
             <div class="param-label">
                 <span>公路 (ROAD) 速度 km/h</span>
@@ -996,7 +1002,7 @@
         },
 
         bootstrapConfig: () => {
-            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
             fetch(baseUrl + "/api/config/get")
                 .then(res => res.json())
                 .then(data => {
@@ -1054,7 +1060,7 @@
         },
 
         pushParamsToBackend: () => {
-            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
             const p = App.state.params;
             const payload = {
                 transport: {
@@ -1168,6 +1174,10 @@
         },
 
         autoInferPlanEndpoints: () => {
+            // Fix: If the user has already manually selected start/end points, do not overwrite them.
+            if (App.state.planStart && App.state.planEnd) {
+                return true;
+            }
             if (App.connections.length === 0) return false;
             const degree = {};
             const nodeNames = new Set();
@@ -1727,24 +1737,34 @@
         },
 
         planOptimalPath: (objective) => {
-            logic.clearVirtualMarkers();
-            if(!App.state.planStart || !App.state.planEnd) {
-                const ok = logic.autoInferPlanEndpoints();
-                if(!ok) {
-                    ui.showToast("请先在节点上右键选择规划起点和终点");
-                    return;
-                }
+            if(!App.nodes.length) { ui.showToast("请先搭建网络骨架"); return; }
+            if(!App.state.planStart) { ui.showToast("请先设置起点"); return; }
+            
+            // Collect destinations
+            let destinations = [];
+            if(App.state.planEndList && App.state.planEndList.length > 0) {
+                destinations = App.state.planEndList;
+            } else if (App.state.planEnd) {
+                destinations = [App.state.planEnd];
             }
-            const startName = App.state.planStart.getExtData().name;
-            const endName = App.state.planEnd.getExtData().name;
-            if(startName === endName) {
-                ui.showToast("起点和终点不能相同");
-                return;
-            }
-            if(App.connections.length === 0) {
-                ui.showToast("当前网络没有任何连接，请先建立线路");
-                return;
-            }
+            
+            if(!destinations.length) { ui.showToast("请先设置终点"); return; }
+
+            const startName = (App.state.planStart.getExtData() || {}).name;
+            const originId = (App.state.planStart.getExtData() || {}).id || startName;
+
+            const nodes = App.nodes.map(marker => {
+                const pos = marker.getPosition();
+                const ext = marker.getExtData() || {};
+                return {
+                    id: ext.name,
+                    name: ext.name,
+                    lng: pos.getLng(),
+                    lat: pos.getLat(),
+                    region: ext.region || 'CN',
+                    type: ext.type || 'port'
+                };
+            });
 
             const buildAllEdges = () => {
                 const list = [];
@@ -1766,257 +1786,66 @@
                 return list;
             };
 
-            const buildAdj = () => {
-                const adj = {};
-                App.connections.forEach(c => {
-                    if(!c || !c.from || !c.to) return;
-                    if(!adj[c.from]) adj[c.from] = [];
-                    if(!adj[c.to]) adj[c.to] = [];
-                    adj[c.from].push(c.to);
-                    adj[c.to].push(c.from);
-                });
-                return adj;
-            };
-
-            const findSimplePaths = (start, end, maxPaths, maxDepth) => {
-                const paths = [];
-                if(!start || !end || start === end) return paths;
-                const adj = buildAdj();
-                const stack = [start];
-                const visited = new Set([start]);
-                const limitPaths = typeof maxPaths === 'number' && maxPaths > 0 ? maxPaths : 4;
-                const limitDepth = typeof maxDepth === 'number' && maxDepth > 0 ? maxDepth : 12;
-                const dfs = (node) => {
-                    if(paths.length >= limitPaths) return;
-                    if(stack.length > limitDepth) return;
-                    if(node === end) {
-                        paths.push(stack.slice());
-                        return;
-                    }
-                    const neighbors = adj[node] || [];
-                    for(let i=0;i<neighbors.length;i++) {
-                        const next = neighbors[i];
-                        if(visited.has(next)) continue;
-                        visited.add(next);
-                        stack.push(next);
-                        dfs(next);
-                        stack.pop();
-                        visited.delete(next);
-                        if(paths.length >= limitPaths) return;
-                    }
-                };
-                dfs(start);
-                return paths;
-            };
-
-            const buildEdgesForNodePath = (nodePath) => {
-                const list = [];
-                if(!Array.isArray(nodePath) || nodePath.length < 2) return list;
-                for(let i=0;i<nodePath.length-1;i++) {
-                    const a = nodePath[i];
-                    const b = nodePath[i+1];
-                    const conn = App.connections.find(c =>
-                        (c.from === a && c.to === b) ||
-                        (c.from === b && c.to === a)
-                    );
-                    if(!conn) continue;
-                    const base = {
-                        from: conn.from,
-                        to: conn.to,
-                        mode: conn.type,
-                        distanceKm: conn.distKm
-                    };
-                    list.push(base);
-                    list.push({
-                        from: conn.to,
-                        to: conn.from,
-                        mode: conn.type,
-                        distanceKm: conn.distKm
-                    });
-                }
-                return list;
-            };
-
-            const nodes = App.nodes.map(marker => {
-                const pos = marker.getPosition();
-                const ext = marker.getExtData() || {};
-                return {
-                    id: ext.name,
-                    name: ext.name,
-                    lng: pos.getLng(),
-                    lat: pos.getLat(),
-                    region: ext.region || 'CN',
-                    type: ext.type || 'port'
-                };
-            });
-
-            const edges = [];
-            App.connections.forEach(c => {
-                const base = {
-                    from: c.from,
-                    to: c.to,
-                    mode: c.type,
-                    distanceKm: c.distKm
-                };
-                edges.push(base);
-                edges.push({
-                    from: c.to,
-                    to: c.from,
-                    mode: c.type,
-                    distanceKm: c.distKm
-                });
-            });
-
             let objectiveApi = 'fast';
             if(objective === 'time') objectiveApi = 'fast';
             else if(objective === 'cost') objectiveApi = 'cheap';
             else if(objective === 'co2') objectiveApi = 'green';
             else if(objective === 'balanced') objectiveApi = 'balanced';
 
-            const originId = (App.state.planStart.getExtData() || {}).id || startName;
             const events = Array.isArray(App.state.events) ? App.state.events.filter(ev => ev && ev.enabled !== false) : [];
-            const endMarkers = [];
-            const endList = Array.isArray(App.state.planEndList) ? App.state.planEndList : [];
-            if(endList.length) {
-                const seen = new Set();
-                endList.forEach(m => {
-                    if(!m) return;
-                    const ext = m.getExtData() || {};
-                    const id = ext.id || ext.name;
-                    if(!id || seen.has(id)) return;
-                    seen.add(id);
-                    endMarkers.push(m);
-                });
-            }
-            if(!endMarkers.length) {
-                endMarkers.push(App.state.planEnd);
-            }
-            const basePayloadCommon = {
-                nodes,
-                originId,
-                objective: objectiveApi,
-                events
-            };
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
+            const allEdges = buildAllEdges();
 
-            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
-            ui.showToast("AI 正在为多条候选路线计算最优路径...");
+            ui.showToast(`AI 正在规划 ${destinations.length} 条路径...`);
 
-            const tasks = [];
-            const maxPathsPerDest = 4;
-            const allEdgesFallback = buildAllEdges();
-            endMarkers.forEach(m => {
-                const ext = m.getExtData() || {};
-                const id = ext.id || ext.name;
-                const name = ext.name || id;
-                const destId = id;
-                const nodePaths = findSimplePaths(startName, name, maxPathsPerDest, 12);
-                if(nodePaths && nodePaths.length > 0) {
-                    nodePaths.forEach((pathNodes, altIndex) => {
-                        const edgesForPath = buildEdgesForNodePath(pathNodes);
-                        const payload = Object.assign({}, basePayloadCommon, {
-                            destinationId: destId,
-                            edges: edgesForPath
-                        });
-                        const task = fetch(baseUrl + "/api/plan/route", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(payload)
-                        })
-                        .then(res => res.json().then(data => ({
-                            ok: res.ok,
-                            status: res.status,
-                            data,
-                            destId,
-                            destName: name,
-                            altIndex
-                        })))
-                        .catch(() => ({
-                            ok: false,
-                            status: 0,
-                            data: null,
-                            destId,
-                            destName: name,
-                            altIndex
-                        }));
-                        tasks.push(task);
-                    });
-                } else {
-                    const payload = Object.assign({}, basePayloadCommon, {
-                        destinationId: destId,
-                        edges: allEdgesFallback
-                    });
-                    const task = fetch(baseUrl + "/api/plan/route", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(res => res.json().then(data => ({
-                        ok: res.ok,
-                        status: res.status,
-                        data,
-                        destId,
-                        destName: name,
-                        altIndex: 0
-                    })))
-                    .catch(() => ({
-                        ok: false,
-                        status: 0,
-                        data: null,
-                        destId,
-                        destName: name,
-                        altIndex: 0
-                    }));
-                    tasks.push(task);
-                }
+            // Reset state
+            App.state.multiPlanRouteGroups = [];
+            App.state.lastPlanRoutes = [];
+            logic.clearVirtualMarkers();
+
+            const promises = destinations.map(destMarker => {
+                const destExt = destMarker.getExtData() || {};
+                const destinationId = destExt.id || destExt.name;
+                
+                const payload = {
+                    nodes,
+                    originId,
+                    destinationId,
+                    objective: objectiveApi,
+                    events,
+                    edges: allEdges
+                };
+                
+                return fetch(baseUrl + "/api/plan/route", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) return null;
+                    return data;
+                })
+                .catch(e => null);
             });
 
-            Promise.all(tasks).then(results => {
-                const allLegs = [];
-                const allNodes = [];
-                const groups = [];
-                results.forEach(r => {
-                    if(!r || !r.ok || !r.data) return;
-                    const legs = Array.isArray(r.data.legs) ? r.data.legs : [];
-                    if(!legs.length) return;
-                    const tagged = legs.map(l => {
-                        const copy = Object.assign({}, l);
-                        copy._destId = r.destId;
-                        copy._destName = r.destName;
-                        copy._altIndex = typeof r.altIndex === 'number' ? r.altIndex : 0;
-                        return copy;
-                    });
-                    allLegs.push.apply(allLegs, tagged);
-                    if(Array.isArray(r.data.nodes)) {
-                        allNodes.push.apply(allNodes, r.data.nodes);
-                    }
-                    groups.push({ destId: r.destId, destName: r.destName, altIndex: typeof r.altIndex === 'number' ? r.altIndex : 0 });
-                });
-
-                if(!allLegs.length) {
-                    const firstError = results.find(r => r && !r.ok);
-                    if(firstError && firstError.data && firstError.data.error) {
-                        ui.showToast(firstError.data.error);
-                    } else {
-                        ui.showToast("后端未返回可用路径");
-                    }
+            Promise.all(promises).then(results => {
+                const validResults = results.filter(r => r && r.legs && r.legs.length);
+                if (validResults.length === 0) {
+                    ui.showToast("未能规划出有效路径");
                     return;
                 }
 
-                if(allNodes.length) {
-                    logic.syncBackendNodes(allNodes);
-                } else {
-                    logic.clearVirtualMarkers();
-                }
+                validResults.forEach(result => {
+                    const backendNodes = result.nodes || [];
+                    if(backendNodes.length) logic.syncBackendNodes(backendNodes);
 
-                logic.applyLegModesToConnections(allLegs);
-                visuals.buildNavPolylinesForLegs(allLegs);
+                    const legs = result.legs;
+                    logic.applyLegModesToConnections(legs);
+                    visuals.buildNavPolylinesForLegs(legs, true);
 
-                const activeRoutes = [];
-                const routeGroups = [];
-                groups.forEach(g => {
-                    const groupLegs = allLegs.filter(l => l._destId === g.destId && l._altIndex === g.altIndex);
-                    const groupRoutes = [];
-                    groupLegs.forEach(leg => {
+                    const activeRoutes = [];
+                    legs.forEach(leg => {
                         let routeLike = null;
                         const conn = App.connections.find(c =>
                             (c.from === leg.fromId && c.to === leg.toId) ||
@@ -2027,29 +1856,33 @@
                         } else if (leg._navLine) {
                             routeLike = leg._navLine;
                         }
-                        if(routeLike && !groupRoutes.includes(routeLike)) {
-                            groupRoutes.push(routeLike);
-                        }
                         if(routeLike && !activeRoutes.includes(routeLike)) {
                             activeRoutes.push(routeLike);
                         }
                     });
-                    routeGroups.push(groupRoutes);
+                    
+                    if(activeRoutes.length) {
+                        App.state.multiPlanRouteGroups.push(activeRoutes);
+                        activeRoutes.forEach(r => {
+                            if(!App.state.lastPlanRoutes.includes(r)) {
+                                App.state.lastPlanRoutes.push(r);
+                            }
+                        });
+                    }
                 });
 
-                App.state.lastPlanRoutes = activeRoutes;
-                App.state.multiPlanRouteGroups = routeGroups;
-                visuals.highlightPlanRoutes(activeRoutes);
-                if(App.map && activeRoutes.length) {
-                    App.map.setFitView(activeRoutes);
+                visuals.highlightPlanRoutes(App.state.lastPlanRoutes);
+                if(App.map && App.state.lastPlanRoutes.length) {
+                    App.map.setFitView(App.state.lastPlanRoutes);
                 }
-
+                
                 ui.updateStats();
                 ui.closeModals();
-                ui.showToast("AI 多目的地最优路径已计算完成");
-            }).catch(err => {
+                ui.showToast(`AI 规划完成: 共 ${validResults.length} 条线路`);
+            })
+            .catch(err => {
                 console.error(err);
-                ui.showToast("无法连接后端服务，请检查后端是否启动");
+                ui.showToast("规划过程出错");
             });
         },
 
@@ -2225,6 +2058,7 @@
             App.state.pendingPlan = null;
             App.state.planStart = null;
             App.state.planEnd = null;
+            App.state.planEndList = [];
             App.state.lastPlanRoutes = [];
             App.state.navPolylines = [];
             logic.clearVirtualMarkers();
@@ -2374,17 +2208,18 @@
             return curve;
         },
 
-        buildNavPolylinesForLegs: (legs) => {
+        buildNavPolylinesForLegs: (legs, append) => {
             if(!App.map || !Array.isArray(legs) || !legs.length) return;
-            if(Array.isArray(App.state.navPolylines) && App.state.navPolylines.length) {
+            if(!append && Array.isArray(App.state.navPolylines) && App.state.navPolylines.length) {
                 try {
                     App.state.navPolylines.forEach(p => {
                         try { App.map.remove(p); } catch(e) {}
                     });
                 } catch(e) {}
+                App.state.navPolylines = [];
             }
-            App.state.navPolylines = [];
-            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            if (!App.state.navPolylines) App.state.navPolylines = [];
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
             const navLines = [];
             const roadTasks = [];
             const colorByMode = (m) => {
@@ -2408,6 +2243,8 @@
                     showDir: true,
                     zIndex: 90
                 });
+                navLine._navPath = pts;
+                navLine._type = modeStr;
                 App.map.add(navLine);
                 leg._navLine = navLine;
                 navLines.push(navLine);
@@ -2499,18 +2336,18 @@
         startFlowPolyline: (pathArr, type, onComplete) => {
             if (!Array.isArray(pathArr) || pathArr.length === 0) return;
             let icon = '🚢';
-            let speed = 3500;
+            let speed = 500; // Slower speed for better visibility
             let color = '#00ffff';
-            if(type==='1') { icon='🚚'; speed=3000; color='#00ff99'; }
-            if(type==='2') { icon='🚢'; speed=3500; color='#00ffff'; }
-            if(type==='3') { icon='✈️'; speed=3200; color='#ff66ff'; }
-            if(type==='4') { icon='🚂'; speed=3200; color='#ffcc00'; }
-            const html = `<div style="width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.9);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 8px ${color};">${icon}</div>`;
+            if(type==='1') { icon='🚚'; speed=200; color='#00ff99'; }
+            if(type==='2') { icon='🚢'; speed=500; color='#00ffff'; }
+            if(type==='3') { icon='✈️'; speed=800; color='#ff66ff'; }
+            if(type==='4') { icon='🚂'; speed=300; color='#ffcc00'; }
+            const html = `<div style="width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.9);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 8px ${color};z-index:999;">${icon}</div>`;
             const marker = new AMap.Marker({
                 map: App.map, position: pathArr[0],
                 content: html,
-                offset: new AMap.Pixel(-8, -8),
-                zIndex: 200
+                offset: new AMap.Pixel(-11, -11),
+                zIndex: 999
             });
             marker.on('moveend', () => {
                 marker.setMap(null);
@@ -2533,14 +2370,14 @@
             const onComplete = cfg.onComplete;
 
             let icon = '✈️';
-            let speed = 6000;
+            let speed = 800; // Slower
             let color = '#ff66ff';
-            if(type==='1') { icon='🚚'; speed=3500; color='#00ff99'; }
-            if(type==='2') { icon='🚢'; speed=4000; color='#00ffff'; }
-            if(type==='4') { icon='🚂'; speed=4000; color='#ffcc00'; }
+            if(type==='1') { icon='🚚'; speed=200; color='#00ff99'; }
+            if(type==='2') { icon='🚢'; speed=500; color='#00ffff'; }
+            if(type==='4') { icon='🚂'; speed=300; color='#ffcc00'; }
 
             const path = [];
-            for(let t=0; t<=1; t+=0.02) {
+            for(let t=0; t<=1; t+=0.01) { // More points for smoother animation
                 const x = (1-t)*(1-t)*p1.getLng() + 2*(1-t)*t*cp[0] + t*t*p2.getLng();
                 const y = (1-t)*(1-t)*p1.getLat() + 2*(1-t)*t*cp[1] + t*t*p2.getLat();
                 if(isNaN(x) || isNaN(y)) {
@@ -2550,12 +2387,12 @@
                 path.push(new AMap.LngLat(x, y));
             }
 
-            const html = `<div style="width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.9);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 8px ${color};">${icon}</div>`;
+            const html = `<div style="width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.9);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 8px ${color};z-index:999;">${icon}</div>`;
             const marker = new AMap.Marker({
                 map: App.map, position: path[0],
                 content: html,
-                offset: new AMap.Pixel(-8, -8),
-                zIndex: 200
+                offset: new AMap.Pixel(-11, -11),
+                zIndex: 999
             });
 
             const moveOnce = () => {
@@ -2611,10 +2448,9 @@
             const set = new Set(planRoutes || []);
             (App.routes || []).forEach(r => {
                 const isPlan = set.has(r);
-                if(isPlan) {
-                    visuals.setRouteActive(r, true);
-                } else if(r.hide) {
-                    r.hide();
+                visuals.setRouteActive(r, isPlan);
+                if(!isPlan && r.show) {
+                    r.show();
                 }
             });
         }
@@ -2720,7 +2556,7 @@
         },
 
         checkCloudConnection: () => {
-            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
             const target = baseUrl.replace(/\/+$/, '') + '/api/health';
             App.state.cloudStatus = 'checking';
             ui.updateCloudStatusBadge();

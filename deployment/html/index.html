@@ -15,7 +15,7 @@
         #intro-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2001; background: radial-gradient(circle at center, #0b1026 0%, #000000 100%); }
         .intro-content { z-index: 2002; text-align: center; pointer-events: none; animation: float 6s ease-in-out infinite; }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
-        h1 { font-family: 'Orbitron', sans-serif; font-size: 5rem; text-transform: uppercase; letter-spacing: 0.8rem; margin: 0; background: linear-gradient(to bottom, #ffffff, var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 210, 255, 0.5); }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 5rem; text-transform: uppercase; letter-spacing: 0.8rem; margin: 0; background: linear-gradient(to bottom, #ffffff, var(--neon-blue)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 210, 255, 0.5); }
         .subtitle { font-size: 1.5rem; color: #aaccff; margin-bottom: 4rem; letter-spacing: 0.3rem; text-transform: uppercase; }
         #enter-btn { pointer-events: auto; padding: 15px 50px; font-size: 1.2rem; background: rgba(0, 210, 255, 0.1); color: var(--neon-blue); border: 2px solid var(--neon-blue); box-shadow: 0 0 20px rgba(0, 210, 255, 0.2); cursor: pointer; transition: all 0.3s; font-family: 'Orbitron', sans-serif; letter-spacing: 2px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
         #enter-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 40px var(--neon-blue); }
@@ -24,32 +24,46 @@
         #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0; transition: opacity 1s; }
         #ui-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; display: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); background-size: 100% 4px; }
         
+        /* MAIN UI CONTAINER - FIX Z-INDEX */
+        #main-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; pointer-events: none; }
+
         /* PANELS */
         .ui-panel { background: var(--panel-bg); backdrop-filter: blur(10px); border: 1px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 15px rgba(0, 210, 255, 0.05); pointer-events: auto; position: absolute; color: #eee; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); }
-        .top-bar { top: 0; left: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,20,40,0.6) 100%); border-bottom: 1px solid var(--neon-blue); clip-path: none; z-index: 200; }
+        .top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,20,40,0.6) 100%); border-bottom: 1px solid var(--neon-blue); clip-path: none; z-index: 1100; pointer-events: auto; box-sizing: border-box; }
         .logo-small { font-family: 'Orbitron'; font-weight: 900; font-size: 1.2rem; color: #fff; text-shadow: 0 0 10px var(--neon-blue); }
         .status-badge { font-size: 0.9rem; color: var(--neon-green); border: 1px solid var(--neon-green); padding: 2px 8px; border-radius: 2px; margin-left: 15px; }
         .back-btn { background: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink); padding: 5px 15px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; transition: 0.3s; }
         .back-btn:hover { background: var(--neon-pink); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
         
-        /* SIDEBAR */
-        .sidebar-container { position: absolute; top: 80px; left: 20px; bottom: 340px; width: 260px; pointer-events: none; display: flex; flex-direction: column; }
-        .sidebar { width: 100%; padding: 15px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+        .sidebar-container { position: absolute; top: 80px; left: 20px; bottom: 340px; width: 260px; pointer-events: none; display: flex; flex-direction: column; z-index: 1050; }
+        .sidebar { position: relative; width: 100%; padding: 15px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; box-sizing: border-box; max-height: 100%; overflow-y: auto; }
         .tool-group h3 { font-size: 0.8rem; color: var(--neon-blue); border-bottom: 1px solid rgba(0,210,255,0.3); padding-bottom: 5px; margin: 0 0 10px 0; letter-spacing: 1px; }
         .tool-btn { width: 100%; background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); color: #aaccff; padding: 10px; cursor: pointer; text-align: left; margin-bottom: 5px; transition: 0.2s; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
         .tool-btn:hover { background: rgba(0, 210, 255, 0.15); border-color: var(--neon-blue); color: #fff; }
         .tool-btn.active { background: rgba(0, 210, 255, 0.3); border-color: var(--neon-blue); color: #fff; box-shadow: 0 0 10px rgba(0, 210, 255, 0.2); }
+        .tool-btn.disabled { opacity: 0.3; cursor: default; pointer-events: none; }
         .tool-icon { width: 20px; text-align: center; }
-        
-        /* DASHBOARD */
-        .dashboard-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 320px; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; z-index: 150; }
-        .dashboard-toggle { pointer-events: auto; width: 140px; height: 25px; margin: 0 auto; background: var(--bg-dark); border: 1px solid var(--neon-blue); border-bottom: none; color: var(--neon-blue); cursor: pointer; font-size: 0.8rem; text-align: center; clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%); }
-        .dashboard { width: 96%; margin: 0 2% 15px 2%; height: 280px; display: flex; gap: 15px; transition: transform 0.3s; }
-        .dashboard.hidden { transform: translateY(120%); }
-        .kpi-card { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 15px; display: flex; flex-direction: column; }
-        .kpi-title { font-size: 0.9rem; color: var(--neon-blue); margin-bottom: 10px; text-transform: uppercase; }
-        .kpi-value { font-size: 2rem; font-weight: 700; color: #fff; margin-top: auto; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
-        .kpi-sub { font-size: 0.8rem; color: #888; }
+
+        .node-context-menu {
+            position: absolute;
+            z-index: 3000;
+            min-width: 180px;
+            background: rgba(5, 10, 20, 0.96);
+            border: 1px solid rgba(0, 210, 255, 0.6);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+            color: #aaccff;
+            font-size: 12px;
+            display: none;
+        }
+        .node-context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .node-context-menu-item:hover {
+            background: rgba(0, 210, 255, 0.25);
+            color: #fff;
+        }
         
         /* MODALS */
         .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: center; }
@@ -57,8 +71,10 @@
         .modal h2 { margin-top: 0; color: var(--neon-blue); border-bottom: 1px solid #333; padding-bottom: 10px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; color: #888; margin-bottom: 5px; font-size: 0.9rem; }
-        .form-control { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #333; color: #fff; padding: 10px; font-family: 'Rajdhani'; font-size: 1rem; box-sizing: border-box; }
+        .form-control { width: 100%; background: rgba(0,0,0,0.6); border: 1px solid #333; color: #fff; padding: 10px; font-family: 'Rajdhani'; font-size: 1rem; box-sizing: border-box; }
         .form-control:focus { border-color: var(--neon-blue); outline: none; }
+        select.form-control { background: #050a14; color: #aaccff; border-color: rgba(0,210,255,0.4); }
+        select.form-control option { background: #050a14; color: #aaccff; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn-primary { background: var(--neon-blue); color: #000; border: none; padding: 10px 25px; font-weight: bold; cursor: pointer; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); }
         .btn-cancel { background: transparent; color: #888; border: 1px solid #888; padding: 10px 25px; cursor: pointer; }
@@ -88,15 +104,82 @@
         }
         .cyber-node.level-1 { width: 30px; height: 30px; background: var(--neon-pink); box-shadow: 0 0 15px var(--neon-pink); }
         .cyber-node.level-1::after { border-color: var(--neon-pink); }
+        .cyber-node.level-3 { width: 15px; height: 15px; border-radius: 2px; background: #FFD700; box-shadow: 0 0 10px #FFD700; }
+        .cyber-node.level-3::after { border-radius: 2px; border-color: #FFD700; }
+        .cyber-node:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px var(--neon-blue), 0 0 30px rgba(0,210,255,0.8);
+        }
         
         @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
         @keyframes ripple { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+
+        .param-panel {
+            position: absolute;
+            top: 80px;
+            left: 300px;
+            right: auto;
+            width: 320px;
+            max-height: calc(100% - 120px);
+            overflow-y: auto;
+            padding: 16px;
+            box-sizing: border-box;
+            z-index: 2600;
+        }
+        .param-title {
+            font-size: 0.9rem;
+            color: var(--neon-blue);
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
+        }
+        .param-section {
+            border-top: 1px solid rgba(0,210,255,0.3);
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .param-row {
+            margin-bottom: 10px;
+        }
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #aaccff;
+            margin-bottom: 4px;
+        }
+        .param-default {
+            font-size: 0.7rem;
+            color: #777;
+        }
+        .param-slider {
+            width: 100%;
+        }
+        .param-value {
+            font-size: 0.8rem;
+            color: #fff;
+            margin-top: 2px;
+        }
+        .param-reset {
+            border: 1px solid rgba(0,210,255,0.5);
+            background: transparent;
+            color: #aaccff;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+        .param-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+        }
     </style>
     
     <script src="js/three.min.js"></script>
     <script type="text/javascript">window._AMapSecurityConfig = { securityJsCode: '3c1e92c638ba2d5ac175ac5ec49928fd' }</script>
     <!-- Use HTTPS for AMap -->
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=fc4cff1c140271ad4b1479b2cd3ff216&plugin=AMap.Driving,AMap.MoveAnimation,AMap.BezierCurve,AMap.GeometryUtil"></script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=fc4cff1c140271ad4b1479b2cd3ff216&plugin=AMap.MoveAnimation,AMap.BezierCurve,AMap.GeometryUtil,AMap.Driving"></script>
 </head>
 <body>
 <div id="app">
@@ -120,7 +203,7 @@
         <div class="top-bar">
             <div style="display:flex; align-items:center;">
                 <div class="logo-small">LOGIGLOBE PRO</div>
-                <div class="status-badge">系统在线</div>
+                <div class="status-badge" id="cloud-status-badge">云端检测中...</div>
                 <div class="status-badge" style="border-color:var(--neon-blue); color:var(--neon-blue);">AI 引擎激活</div>
             </div>
             <button class="back-btn" onclick="systemExit()">退出系统</button>
@@ -129,49 +212,45 @@
         <div class="sidebar-container">
             <div class="sidebar ui-panel">
                 <div class="tool-group">
-                    <h3>网络运营 (OPS)</h3>
-                    <div class="tool-btn" id="btn-add" onclick="ui.openAddNodeModal()"><span class="tool-icon">+</span> 添加节点</div>
-                    <div class="tool-btn" id="btn-connect" onclick="ui.setMode('connect')"><span class="tool-icon">∞</span> 建立连接</div>
-                    <div class="tool-btn" onclick="logic.autoRoute()"><span class="tool-icon">⚡</span> AI 智能布网</div>
+                    <h3>流程控制 (FLOW)</h3>
+                    <div class="tool-btn active" id="btn-phase-1" onclick="ui.setPhase(1)"><span class="tool-icon">①</span> 阶段一 · 网络搭建</div>
+                    <div class="tool-btn" id="btn-phase-2" onclick="ui.setPhase(2)"><span class="tool-icon">②</span> 阶段二 · AI 规划</div>
                 </div>
                 <div class="tool-group">
-                    <h3>仿真模拟 (SIM)</h3>
-                    <div class="tool-btn" onclick="logic.simulateEvent()"><span class="tool-icon">!</span> 触发突发事件</div>
+                    <h3>阶段一 · 网络搭建</h3>
+                    <div class="tool-btn" id="btn-add" onclick="ui.setMode('addNode')"><span class="tool-icon">+</span> 添加节点</div>
+                    <div class="tool-btn" id="btn-connect" onclick="ui.setMode('connect')"><span class="tool-icon">∞</span> 建立连接</div>
+                    <div class="tool-btn" id="btn-mode-fanout" onclick="ui.setConnectMode('fanout')"><span class="tool-icon">⊙</span> 起点固定连线</div>
+                    <div class="tool-btn" id="btn-mode-chain" onclick="ui.setConnectMode('chain')"><span class="tool-icon">⇢</span> 接力连线模式</div>
+                </div>
+                <div class="tool-group">
+                    <h3>阶段二 · AI 规划与仿真</h3>
+                    <div class="tool-btn phase2-only" id="btn-ai-plan" onclick="ui.openPlanObjectiveModal()"><span class="tool-icon">🧭</span> 最优路径规划</div>
+                    <div class="tool-btn phase2-only" id="btn-ai-play" onclick="logic.playPlanAnimation()"><span class="tool-icon">▶</span> AI 路径演示</div>
+                </div>
+                <div class="tool-group">
+                    <h3>突发事件 (EVENTS)</h3>
+                    <div class="tool-btn phase2-only" id="btn-event-sim" onclick="logic.simulateEvent()"><span class="tool-icon">!</span> 一键事件演示</div>
+                    <div class="tool-btn phase2-only" id="btn-event-add" onclick="ui.openEventConfigModal()"><span class="tool-icon">☁</span> 配置并放置事件</div>
+                    <div class="tool-btn phase2-only" id="btn-event-manage" onclick="ui.openEventManager()"><span class="tool-icon">🗂</span> 事件列表管理</div>
+                    <div class="tool-btn phase2-only" id="btn-event-cancel" onclick="logic.cancelPendingEvent()"><span class="tool-icon">↩</span> 取消事件预览</div>
+                    <div class="tool-btn phase2-only" id="btn-event-clear" onclick="logic.clearEvents()"><span class="tool-icon">✖</span> 清除所有事件</div>
+                </div>
+                <div class="tool-group">
+                    <h3>参数配置 (CONFIG)</h3>
+                    <div class="tool-btn" onclick="ui.toggleParamPanel()"><span class="tool-icon">⚙️</span> 打开参数面板</div>
                     <div class="tool-btn" onclick="logic.clearAll()"><span class="tool-icon">🗑️</span> 重置系统</div>
                 </div>
                 <div class="tool-group">
                     <h3>数据与输出 (I/O)</h3>
-                    <div class="tool-btn" onclick="ui.toggleCockpit()"><span class="tool-icon">🖥️</span> 全屏驾驶舱</div>
-                    <div class="tool-btn" onclick="io.exportReport()"><span class="tool-icon">📊</span> 导出分析报告</div>
+                    <div class="tool-btn phase2-only" id="btn-cockpit" onclick="ui.toggleCockpit()"><span class="tool-icon">🖥️</span> 数据分析中心</div>
+                    <div class="tool-btn" id="btn-save-scheme" onclick="io.saveScheme()"><span class="tool-icon">💾</span> 保存当前方案</div>
+                    <div class="tool-btn" id="btn-load-scheme" onclick="io.loadScheme()"><span class="tool-icon">📂</span> 加载已保存方案</div>
+                    <div class="tool-btn phase2-only" id="btn-export" onclick="io.exportReport()"><span class="tool-icon">📊</span> 导出分析报告</div>
                 </div>
             </div>
         </div>
 
-        <div class="dashboard-container">
-            <button class="dashboard-toggle" onclick="ui.toggleDashboard()">▼ 实时数据流 ▼</button>
-            <div class="dashboard ui-panel" id="dashboard-panel">
-                <div class="kpi-card">
-                    <div class="kpi-title">活跃节点</div>
-                    <div class="kpi-value" id="kpi-nodes">0</div>
-                    <div class="kpi-sub">全球枢纽</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">运行线路</div>
-                    <div class="kpi-value" id="kpi-routes">0</div>
-                    <div class="kpi-sub">最优路径</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">预估总成本</div>
-                    <div class="kpi-value" style="color:var(--neon-blue)" id="kpi-cost">$0</div>
-                    <div class="kpi-sub">百万美元 (USD)</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">碳排放总量</div>
-                    <div class="kpi-value" style="color:var(--neon-green)" id="kpi-co2">0</div>
-                    <div class="kpi-sub">吨 CO2e</div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Modals -->
@@ -200,6 +279,15 @@
                     <option value="3">Level 3 - 地方站点</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>节点类型 (Type)</label>
+                <select id="node-type" class="form-control">
+                    <option value="port">港口 (Port)</option>
+                    <option value="airport">机场 (Airport)</option>
+                    <option value="rail">铁路枢纽 (Rail Hub)</option>
+                    <option value="warehouse">仓库/分拨中心 (Warehouse)</option>
+                </select>
+            </div>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="ui.closeModals()">取消</button>
                 <button class="btn-primary" onclick="ui.confirmAddNode()">确认添加</button>
@@ -214,21 +302,21 @@
             <p id="plan-desc" style="color:#aaa; margin-bottom: 20px;">正在分析连接可行性...</p>
             
             <div class="plan-grid">
-                <div class="plan-card" onclick="logic.selectRoute('1')">
-                    <div class="plan-head"><span style="color:#3366FF">🚛 公路运输 (ROAD)</span> <span>$$</span></div>
-                    <div class="plan-detail"><span>耗时: <b id="p-road-t">48h</b></span> <span>碳排: 低</span></div>
+                <div class="plan-card" onclick="logic.planOptimalPath('time')">
+                    <div class="plan-head"><span style="color:#3366FF">⏱ 时间优先 (FASTEST)</span></div>
+                    <div class="plan-detail"><span>目标: 总运输时间最短</span> <span>适合: 紧急订单</span></div>
                 </div>
-                <div class="plan-card" onclick="logic.selectRoute('2')">
-                    <div class="plan-head"><span style="color:#00FFFF">🚢 远洋海运 (SEA)</span> <span>$</span></div>
-                    <div class="plan-detail"><span>耗时: <b id="p-sea-t">14d</b></span> <span>碳排: 中</span></div>
+                <div class="plan-card" onclick="logic.planOptimalPath('cost')">
+                    <div class="plan-head"><span style="color:#00FFFF">💰 成本优先 (CHEAPEST)</span></div>
+                    <div class="plan-detail"><span>目标: 总成本最低</span> <span>适合: 成本敏感</span></div>
                 </div>
-                <div class="plan-card" onclick="logic.selectRoute('3')">
-                    <div class="plan-head"><span style="color:#FF00FF">✈️ 航空货运 (AIR)</span> <span>$$$</span></div>
-                    <div class="plan-detail"><span>耗时: <b id="p-air-t">12h</b></span> <span>碳排: 高</span></div>
+                <div class="plan-card" onclick="logic.planOptimalPath('co2')">
+                    <div class="plan-head"><span style="color:#00ff99">🌱 低碳优先 (GREEN)</span></div>
+                    <div class="plan-detail"><span>目标: 碳排放最少</span> <span>适合: ESG 场景</span></div>
                 </div>
-                <div class="plan-card" onclick="logic.selectRoute('4')">
-                    <div class="plan-head"><span style="color:#ccc">🚂 铁路运输 (RAIL)</span> <span>$$</span></div>
-                    <div class="plan-detail"><span>耗时: <b id="p-rail-t">72h</b></span> <span>碳排: 极低</span></div>
+                <div class="plan-card" onclick="logic.planOptimalPath('balanced')">
+                    <div class="plan-head"><span style="color:#ccc">⚖ 综合平衡 (BALANCED)</span></div>
+                    <div class="plan-detail"><span>目标: 时间/成本/碳排折中</span> <span>适合: 日常运营</span></div>
                 </div>
             </div>
             <div class="modal-actions">
@@ -237,10 +325,53 @@
         </div>
     </div>
 
-    <!-- Full Screen Cockpit -->
+    <!-- 3. Event Config Modal -->
+    <div id="modal-event-config" class="modal-overlay">
+        <div class="modal">
+            <h2>配置突发事件 (Configure Event)</h2>
+            <div class="form-group">
+                <label>事件类型 (Type)</label>
+                <select id="event-type" class="form-control">
+                    <option value="typhoon">天气事件 · 台风/暴雪</option>
+                    <option value="congestion">港口/机场拥堵</option>
+                    <option value="tariff">关税/政策变化</option>
+                    <option value="block">线路中断/封闭</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>影响半径 (km)</label>
+                <input type="number" id="event-radius" class="form-control" value="2000" min="100" max="5000">
+            </div>
+            <div class="form-group">
+                <label>额外延时 (小时)</label>
+                <input type="number" id="event-delay" class="form-control" value="24" min="0" max="240">
+            </div>
+            <div class="form-group">
+                <label>成本放大倍数</label>
+                <input type="number" id="event-cost-factor" class="form-control" value="1.2" min="0" step="0.1">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="ui.closeModals()">取消</button>
+                <button class="btn-primary" onclick="ui.confirmEventConfig()">下一步：在地图上点选位置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Event Manager Modal -->
+    <div id="modal-event-manager" class="modal-overlay">
+        <div class="modal" style="width: 600px;">
+            <h2>事件列表管理 (Event Manager)</h2>
+            <div id="event-list-container" style="max-height:300px; overflow-y:auto; font-size:0.9rem;"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="ui.closeModals()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Analytics Center -->
     <div id="cockpit-view">
         <div class="top-bar">
-            <div class="logo-small">指挥中心 (COMMAND CENTER)</div>
+            <div class="logo-small">数据分析中心 (DATA ANALYTICS CENTER)</div>
             <button class="back-btn" onclick="ui.toggleCockpit()">关闭视图</button>
         </div>
         <div class="cockpit-grid">
@@ -250,6 +381,11 @@
                     <div>服务器负载: <span style="color:var(--neon-green)">12%</span></div>
                     <div>API 延迟: <span style="color:var(--neon-green)">45ms</span></div>
                     <div>在线 Agent: <span style="color:var(--neon-blue)">4</span></div>
+                </div>
+                <div style="margin-top:20px; font-size: 1rem; color:#ccc;">
+                    <div>在途运输段: <span id="cp-legs" style="color:var(--neon-blue)">0</span></div>
+                    <div>跨境运输占比: <span id="cp-cross-border" style="color:var(--neon-green)">0%</span></div>
+                    <div>累计碳排放: <span id="cp-total-co2" style="color:var(--neon-pink)">0.0</span> t</div>
                 </div>
             </div>
             <div class="cp-panel">
@@ -270,7 +406,268 @@
                 <h3 style="color:var(--neon-blue)">财务概览 (FINANCIALS)</h3>
                 <div style="font-size: 3rem; color:#fff; font-weight:bold; margin-top:20px;" id="cp-total-cost">$0</div>
                 <div style="color:#888;">累计运营成本 (Cumulative)</div>
+                <div style="font-size: 1.4rem; color:var(--neon-blue); font-weight:bold; margin-top:20px;" id="cp-total-time">0h</div>
+                <div style="color:#888;">累计运输时间 (Transit Time)</div>
             </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">运营分析与方案对比 (ANALYTICS)</h3>
+                <div style="margin-bottom:12px; font-size:0.85rem; color:#ccc;">
+                    <div>平均单段距离: <span id="anl-avg-leg-dist">0 km</span></div>
+                    <div>平均单段成本: <span id="anl-avg-leg-cost">$0</span></div>
+                    <div>平均单段时间: <span id="anl-avg-leg-time">0h</span></div>
+                    <div style="margin-top:6px;">
+                        运输模式占比:
+                        公路 <span id="anl-mode-road">0%</span> ·
+                        海运 <span id="anl-mode-sea">0%</span> ·
+                        空运 <span id="anl-mode-air">0%</span> ·
+                        铁路 <span id="anl-mode-rail">0%</span>
+                    </div>
+                </div>
+                <div style="margin:8px 0 10px 0; border-top:1px solid rgba(0,210,255,0.2);"></div>
+                <div style="margin-bottom:10px; font-size:0.9rem; color:#aaa;">选择两套已保存方案，对比关键指标。</div>
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <select id="cp-sel-scheme-a" class="form-control"></select>
+                    <select id="cp-sel-scheme-b" class="form-control"></select>
+                </div>
+                <div id="cp-scheme-compare" style="font-size:0.85rem; color:#ccc;"></div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">节点表现 (NODE PERFORMANCE)</h3>
+                <div id="cp-node-top" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">区域拆分 (REGIONAL BREAKDOWN)</h3>
+                <div id="cp-region-breakdown" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">事件影响 (EVENT IMPACT)</h3>
+                <div id="cp-event-impact" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
+            <div class="cp-panel">
+                <h3 style="color:var(--neon-blue)">实时告警 (REAL-TIME ALERTS)</h3>
+                <div id="cp-alerts" style="margin-top:10px; font-size:0.85rem; color:#ccc;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="param-panel" class="ui-panel param-panel" style="display:none;">
+        <h3 class="param-title">参数面板 (Parameters)</h3>
+        <div class="param-section">
+            <div class="param-label">
+                <span>后端地址 (Backend URL)</span>
+            </div>
+            <input id="param-backend-url" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid #00d2ff; color:#fff; padding:5px;" type="text" value="http://121.41.69.91:3001" onchange="App.state.backendBaseUrl = this.value; ui.showToast('后端地址已更新');">
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>公路 (ROAD) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-road-speed"></span></span>
+            </div>
+            <input id="param-road-speed" class="param-slider" type="range" min="20" max="120" step="5" oninput="ui.updateParamSlider('road-speed', this)">
+            <div class="param-value" id="val-road-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('road-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>公路 (ROAD) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-road-cost"></span></span>
+            </div>
+            <input id="param-road-cost" class="param-slider" type="range" min="0.5" max="5" step="0.1" oninput="ui.updateParamSlider('road-cost', this)">
+            <div class="param-value" id="val-road-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('road-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>公路 (ROAD) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-road-co2"></span></span>
+            </div>
+            <input id="param-road-co2" class="param-slider" type="range" min="0.01" max="0.2" step="0.005" oninput="ui.updateParamSlider('road-co2', this)">
+            <div class="param-value" id="val-road-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('road-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>铁路 (RAIL) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-rail-speed"></span></span>
+            </div>
+            <input id="param-rail-speed" class="param-slider" type="range" min="40" max="120" step="5" oninput="ui.updateParamSlider('rail-speed', this)">
+            <div class="param-value" id="val-rail-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('rail-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>铁路 (RAIL) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-rail-cost"></span></span>
+            </div>
+            <input id="param-rail-cost" class="param-slider" type="range" min="0.2" max="3" step="0.1" oninput="ui.updateParamSlider('rail-cost', this)">
+            <div class="param-value" id="val-rail-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('rail-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>铁路 (RAIL) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-rail-co2"></span></span>
+            </div>
+            <input id="param-rail-co2" class="param-slider" type="range" min="0.005" max="0.1" step="0.005" oninput="ui.updateParamSlider('rail-co2', this)">
+            <div class="param-value" id="val-rail-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('rail-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>海运 (SEA) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-sea-speed"></span></span>
+            </div>
+            <input id="param-sea-speed" class="param-slider" type="range" min="10" max="60" step="2" oninput="ui.updateParamSlider('sea-speed', this)">
+            <div class="param-value" id="val-sea-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('sea-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>海运 (SEA) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-sea-cost"></span></span>
+            </div>
+            <input id="param-sea-cost" class="param-slider" type="range" min="0.05" max="1" step="0.05" oninput="ui.updateParamSlider('sea-cost', this)">
+            <div class="param-value" id="val-sea-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('sea-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>海运 (SEA) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-sea-co2"></span></span>
+            </div>
+            <input id="param-sea-co2" class="param-slider" type="range" min="0.005" max="0.1" step="0.005" oninput="ui.updateParamSlider('sea-co2', this)">
+            <div class="param-value" id="val-sea-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('sea-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>空运 (AIR) 速度 km/h</span>
+                <span class="param-default">默认: <span id="def-air-speed"></span></span>
+            </div>
+            <input id="param-air-speed" class="param-slider" type="range" min="400" max="1000" step="20" oninput="ui.updateParamSlider('air-speed', this)">
+            <div class="param-value" id="val-air-speed"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('air-speed')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>空运 (AIR) 成本 元/km</span>
+                <span class="param-default">默认: <span id="def-air-cost"></span></span>
+            </div>
+            <input id="param-air-cost" class="param-slider" type="range" min="1" max="15" step="0.5" oninput="ui.updateParamSlider('air-cost', this)">
+            <div class="param-value" id="val-air-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('air-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>空运 (AIR) 碳排 kg/km</span>
+                <span class="param-default">默认: <span id="def-air-co2"></span></span>
+            </div>
+            <input id="param-air-co2" class="param-slider" type="range" min="0.1" max="1.0" step="0.05" oninput="ui.updateParamSlider('air-co2', this)">
+            <div class="param-value" id="val-air-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('air-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>跨境固定关税成本 (USD)</span>
+                <span class="param-default">默认: <span id="def-tariff-cost"></span></span>
+            </div>
+            <input id="param-tariff-cost" class="param-slider" type="range" min="0" max="2000" step="50" oninput="ui.updateParamSlider('tariff-cost', this)">
+            <div class="param-value" id="val-tariff-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('tariff-cost')">重置</button>
+            </div>
+        </div>
+        <div class="param-section">
+            <div class="param-label">
+                <span>跨境额外时间 (小时)</span>
+                <span class="param-default">默认: <span id="def-tariff-delay"></span></span>
+            </div>
+            <input id="param-tariff-delay" class="param-slider" type="range" min="0" max="72" step="2" oninput="ui.updateParamSlider('tariff-delay', this)">
+            <div class="param-value" id="val-tariff-delay"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('tariff-delay')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>关税突发事件成本放大倍数</span>
+                <span class="param-default">默认: <span id="def-event-tariff"></span></span>
+            </div>
+            <input id="param-event-tariff" class="param-slider" type="range" min="1" max="3" step="0.1" oninput="ui.updateParamSlider('event-tariff', this)">
+            <div class="param-value" id="val-event-tariff"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('event-tariff')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>综合模式权重 · 成本 (COST)</span>
+                <span class="param-default">默认: <span id="def-weight-cost"></span></span>
+            </div>
+            <input id="param-weight-cost" class="param-slider" type="range" min="0" max="1" step="0.05" oninput="ui.updateParamSlider('weight-cost', this)">
+            <div class="param-value" id="val-weight-cost"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('weight-cost')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>综合模式权重 · 时间 (TIME)</span>
+                <span class="param-default">默认: <span id="def-weight-time"></span></span>
+            </div>
+            <input id="param-weight-time" class="param-slider" type="range" min="0" max="1" step="0.05" oninput="ui.updateParamSlider('weight-time', this)">
+            <div class="param-value" id="val-weight-time"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('weight-time')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-section">
+            <div class="param-label">
+                <span>综合模式权重 · 碳排 (CO₂)</span>
+                <span class="param-default">默认: <span id="def-weight-co2"></span></span>
+            </div>
+            <input id="param-weight-co2" class="param-slider" type="range" min="0" max="1" step="0.05" oninput="ui.updateParamSlider('weight-co2', this)">
+            <div class="param-value" id="val-weight-co2"></div>
+            <div class="param-actions">
+                <button class="param-reset" onclick="ui.resetSingleParam('weight-co2')">重置</button>
+            </div>
+        </div>
+
+        <div class="param-actions">
+            <button class="param-reset" onclick="ui.resetAllParams()">全部恢复默认</button>
+            <button class="param-reset" onclick="ui.rollbackParams()">回滚上一次变更</button>
         </div>
     </div>
 
@@ -283,13 +680,53 @@
         nodes: [],
         routes: [],
         connections: [],
+        navPolylines: [],
         state: {
             mode: 'view',
             tempStart: null,
+            planStart: null,
+            planEnd: null,
+            planEndList: [],
+            lastPlanRoutes: [],
+            navPolylines: [],
+            virtualMarkers: [],
+            cloudStatus: 'checking',
+            cloudStatusTimer: null,
+            phase: 1,
+            connectMode: 'fanout',
+            currentLineType: '1',
             routeCounts: {},
-            stats: { cost: 0, co2: 0, dist: 0 }
+            events: [],
+            eventOverlays: [],
+            pendingEventPreview: null,
+            pendingEventConfig: null,
+            stats: { cost: 0, co2: 0, dist: 0, time: 0, legs: 0, crossBorderLegs: 0 },
+            params: {
+                transport: {
+                    road: { speed: 60, cost: 2, co2: 0.05 },
+                    sea: { speed: 35, cost: 0.5, co2: 0.08 },
+                    air: { speed: 800, cost: 8, co2: 0.5 },
+                    rail: { speed: 80, cost: 1, co2: 0.02 }
+                },
+                tariff: {
+                    crossBorderCost: 500,
+                    crossBorderDelayH: 12
+                },
+                events: {
+                    tariffSpikeFactor: 1.2
+                },
+                weights: {
+                    balancedCostWeight: 0.5,
+                    balancedTimeWeight: 0.3,
+                    balancedCo2Weight: 0.2
+                }
+            },
+            backendBaseUrl: 'http://121.41.69.91:3001',
+            multiPlanRouteGroups: []
         }
     };
+
+    const DefaultParams = JSON.parse(JSON.stringify(App.state.params));
 
     // --- 1. INITIALIZATION ---
     function initSystem() {
@@ -331,30 +768,95 @@
     }
 
     function initMap() {
-        if(typeof AMap === 'undefined') { alert("高德地图加载失败 (AMap Load Failed)"); return; }
+        // Fallback: If AMap is undefined, show error but try to show UI
+        if(typeof AMap === 'undefined') { 
+            alert("高德地图加载失败 (AMap Load Failed)。\n请检查网络连接或安全密钥配置。\n系统将尝试进入无地图模式。");
+            forceShowUI();
+            return; 
+        }
         
-        App.map = new AMap.Map('map-container', {
-            viewMode: '3D', zoom: 3, center: [116.39, 39.9], mapStyle: 'amap://styles/darkblue'
-        });
+        try {
+            App.map = new AMap.Map('map-container', {
+                viewMode: '3D', zoom: 3, center: [116.39, 39.9], mapStyle: 'amap://styles/darkblue'
+            });
 
-        App.map.on('complete', () => {
-            document.getElementById('intro-layer').style.opacity = 0;
-            document.getElementById('map-container').style.opacity = 1;
-            document.getElementById('ui-overlay').style.display = 'block';
+            // Context Menu for Map Background (Add Node)
+            const mapContextMenu = new AMap.ContextMenu();
+            mapContextMenu.addItem("在此处添加节点 (Add Node Here)", (e) => {
+                 App.state.tempCoords = App.state.lastRightClickLngLat;
+                 ui.openAddNodeModal(true);
+            }, 0);
+            
+            App.map.on('rightclick', (e) => {
+                App.state.lastRightClickLngLat = e.lnglat;
+                mapContextMenu.open(App.map, e.lnglat);
+            });
+
+            App.map.on('complete', () => {
+                console.log("Map load complete");
+                transitionToMain();
+            });
+            
+            App.map.on('click', (e) => {
+                if(App.state.pendingEventConfig) {
+                    if(!App.state.pendingEventPreview) {
+                        logic.startEventPreview(e.lnglat, App.state.pendingEventConfig);
+                    } else {
+                        logic.confirmPendingEvent();
+                    }
+                } else if(App.state.mode === 'addNode') {
+                    App.state.tempCoords = e.lnglat;
+                    ui.openAddNodeModal(true);
+                }
+            });
+
+            // Safety net: Force show UI after 3 seconds even if 'complete' event fails
             setTimeout(() => {
+                if(document.getElementById('main-ui').style.display === 'none' || document.getElementById('main-ui').style.display === '') {
+                    console.warn("Map complete event timeout, forcing UI transition");
+                    transitionToMain();
+                }
+            }, 3000);
+
+        } catch (e) {
+            console.error("Map Init Error:", e);
+            alert("地图初始化异常: " + e.message);
+            forceShowUI();
+        }
+    }
+
+    function transitionToMain() {
+        document.getElementById('intro-layer').style.opacity = 0;
+        document.getElementById('map-container').style.opacity = 1;
+        document.getElementById('ui-overlay').style.display = 'block';
+        setTimeout(() => {
                 document.getElementById('intro-layer').style.display = 'none';
                 document.getElementById('main-ui').style.display = 'block';
-                logic.addMockData();
-                App.map.on('zoomchange', logic.updateLOD);
-            }, 1000);
-        });
-        
-        App.map.on('click', (e) => {
-            if(App.state.mode === 'addNode') {
-                App.state.tempCoords = e.lnglat;
-                ui.openAddNodeModal(true);
+                ui.initCloudStatus();
+                if(App.map) {
+                    logic.addMockData();
+                    App.map.on('zoomchange', logic.updateLOD);
+                    logic.bootstrapConfig();
+                    try {
+                    const raw = localStorage.getItem('logiglobe_last_plan_endpoints');
+                    if(raw) {
+                        const data = JSON.parse(raw);
+                        const findMarker = (name) => App.nodes.find(m => (m.getExtData() || {}).name === name);
+                        if(data.startName) App.state.planStart = findMarker(data.startName) || null;
+                        if(data.endName) App.state.planEnd = findMarker(data.endName) || null;
+                    }
+                } catch (e) {}
             }
-        });
+        }, 1000);
+    }
+
+    function forceShowUI() {
+        document.getElementById('intro-layer').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        document.getElementById('map-container').style.background = '#050a14'; // Fallback bg
+        document.getElementById('map-container').style.opacity = 1;
+        document.getElementById('map-container').innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#333;">Map Unavailable</div>';
+        ui.initCloudStatus();
     }
 
     function systemExit() {
@@ -364,43 +866,130 @@
         setTimeout(() => {
             document.getElementById('intro-layer').style.opacity = 1;
             document.getElementById('enter-btn').innerText = "重新启动系统 (RE-INITIALIZE)";
-            App.map.destroy();
+            if(App.map) {
+                App.map.clearMap();
+                App.map.destroy();
+            }
+            if(App.state.simInterval) {
+                clearInterval(App.state.simInterval);
+                App.state.simInterval = null;
+            }
+            if(App.state.cloudStatusTimer) {
+                clearInterval(App.state.cloudStatusTimer);
+                App.state.cloudStatusTimer = null;
+            }
             App.map = null;
             App.nodes = [];
             App.routes = [];
-            App.state.stats = { cost: 0, co2: 0 };
+            App.connections = [];
+            App.state.routeCounts = {};
+            App.state.tempStart = null;
+            App.state.pendingPlan = null;
+            App.state.planStart = null;
+            App.state.planEnd = null;
+            App.state.lastPlanRoutes = [];
+            App.state.stats = { cost: 0, co2: 0, dist: 0, time: 0, legs: 0, crossBorderLegs: 0 };
         }, 1000);
     }
 
     // --- 2. LOGIC CONTROLLER ---
     const logic = {
-        addNode: (name, pos, level, region) => {
-            // FIX: Use Custom Content Marker instead of Image to avoid file:// error
-            // and looks much cooler (Neon Pulse)
+        addNode: (name, pos, level, region, type) => {
             const isHub = level == 1;
-            const content = `<div class="cyber-node ${isHub ? 'level-1' : ''}"></div>`;
-            
+            let nodeClass = 'cyber-node';
+            if(level == 1) nodeClass += ' level-1';
+            if(level == 3) nodeClass += ' level-3';
+            const content = `<div class="${nodeClass}"></div>`;
             const marker = new AMap.Marker({
                 position: pos,
                 content: content,
                 offset: new AMap.Pixel(isHub ? -15 : -10, isHub ? -15 : -10),
-                extData: { name, level, region },
+                extData: { id: name, name, level, region, type: type || 'port' },
                 zIndex: 100
             });
-            
             marker.setLabel({
                 offset: new AMap.Pixel(0, 0),
                 content: `<div style="color:#fff; font-family:'Rajdhani'; font-weight:bold; font-size:12px; background:rgba(0,0,0,0.7); padding:4px 8px; border:1px solid #00d2ff; border-radius:4px; margin-top:15px; box-shadow:0 0 10px #00d2ff;">${name}</div>`,
                 direction: 'bottom'
             });
-
             marker.on('click', () => logic.handleNodeClick(marker));
-            marker.on('rightclick', () => logic.deleteNode(marker));
-
+            marker.on('rightclick', (e) => {
+                 logic.showContextMenu(marker, e);
+            });
             App.map.add(marker);
             App.nodes.push(marker);
             logic.updateLOD();
             ui.updateStats();
+            return marker;
+        },
+
+        persistPlanEndpoints: () => {
+            try {
+                const startName = App.state.planStart ? App.state.planStart.getExtData().name : null;
+                const endName = App.state.planEnd ? App.state.planEnd.getExtData().name : null;
+                const data = { startName, endName };
+                localStorage.setItem('logiglobe_last_plan_endpoints', JSON.stringify(data));
+            } catch (e) {}
+        },
+
+        showContextMenu: (marker, e) => {
+            const existing = document.querySelector('.node-context-menu');
+            if (existing && existing.parentNode) {
+                existing.parentNode.removeChild(existing);
+            }
+            const menu = document.createElement('div');
+            menu.className = 'node-context-menu';
+            menu.style.left = e.pixel.x + 'px';
+            menu.style.top = e.pixel.y + 'px';
+            menu.style.display = 'block';
+            const onBodyClick = () => {
+                if (menu.parentNode) {
+                    menu.parentNode.removeChild(menu);
+                }
+                document.removeEventListener('click', onBodyClick);
+            };
+            const addItem = (label, handler) => {
+                const item = document.createElement('div');
+                item.className = 'node-context-menu-item';
+                item.textContent = label;
+                item.onclick = (ev) => {
+                    ev.stopPropagation();
+                    handler();
+                    onBodyClick();
+                };
+                menu.appendChild(item);
+            };
+            addItem("删除节点 (Delete)", () => logic.deleteNode(marker));
+            addItem("设为起点 (Set Start)", () => {
+                App.state.tempStart = marker;
+                ui.setMode('connect');
+                ui.showToast(`已设为起点: ${marker.getExtData().name}`);
+            });
+            addItem("设为规划起点 (Plan Start)", () => {
+                App.state.planStart = marker;
+                App.state.planEndList = App.state.planEndList || [];
+                logic.persistPlanEndpoints();
+                ui.showToast(`AI 规划起点: ${marker.getExtData().name}`);
+            });
+            addItem("设为规划终点 (Plan End)", () => {
+                App.state.planEnd = marker;
+                App.state.planEndList = [marker];
+                logic.persistPlanEndpoints();
+                ui.showToast(`AI 规划终点: ${marker.getExtData().name}`);
+            });
+            addItem("加入多终点集合 (Add As Multi-End)", () => {
+                if(!App.state.planEndList) App.state.planEndList = [];
+                const list = App.state.planEndList;
+                if(!list.includes(marker)) {
+                    list.push(marker);
+                }
+                App.state.planEnd = marker;
+                ui.showToast(`已加入多终点集合: ${marker.getExtData().name}`);
+            });
+            document.body.appendChild(menu);
+            setTimeout(() => {
+                document.addEventListener('click', onBodyClick);
+            }, 0);
         },
 
         deleteNode: (marker) => {
@@ -412,136 +1001,1156 @@
             }
         },
 
+        bootstrapConfig: () => {
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
+            fetch(baseUrl + "/api/config/get")
+                .then(res => res.json())
+                .then(data => {
+                    if(!data || !data.currentConfig || !data.defaultConfig) return;
+                    const toParams = (cfg) => {
+                        const p = App.state.params;
+                        const base = {
+                            transport: {
+                                road: {
+                                    speed: cfg.transport.road.speedKmH,
+                                    cost: cfg.transport.road.costPerKm,
+                                    co2: cfg.transport.road.co2PerKm
+                                },
+                                rail: {
+                                    speed: cfg.transport.rail.speedKmH,
+                                    cost: cfg.transport.rail.costPerKm,
+                                    co2: cfg.transport.rail.co2PerKm
+                                },
+                                sea: {
+                                    speed: cfg.transport.sea.speedKmH,
+                                    cost: cfg.transport.sea.costPerKm,
+                                    co2: cfg.transport.sea.co2PerKm
+                                },
+                                air: {
+                                    speed: cfg.transport.air.speedKmH,
+                                    cost: cfg.transport.air.costPerKm,
+                                    co2: cfg.transport.air.co2PerKm
+                                }
+                            },
+                            tariff: {
+                                crossBorderCost: cfg.tariff.crossBorderCost,
+                                crossBorderDelayH: cfg.tariff.crossBorderDelayHours
+                            },
+                            events: {
+                                tariffSpikeFactor: (cfg.events && cfg.events.tariffSpikeFactor) || (p && p.events ? p.events.tariffSpikeFactor : 1.2)
+                            },
+                            weights: cfg.weights || (p && p.weights) || {
+                                balancedCostWeight: 0.5,
+                                balancedTimeWeight: 0.3,
+                                balancedCo2Weight: 0.2
+                            }
+                        };
+                        return base;
+                    };
+                    const current = toParams(data.currentConfig);
+                    const def = toParams(data.defaultConfig);
+                    App.state.params = current;
+                    Object.keys(DefaultParams).forEach(k => delete DefaultParams[k]);
+                    const clonedDef = JSON.parse(JSON.stringify(def));
+                    Object.assign(DefaultParams, clonedDef);
+                    ui.syncParamPanel();
+                    ui.updateStats();
+                })
+                .catch(() => {});
+        },
+
+        pushParamsToBackend: () => {
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
+            const p = App.state.params;
+            const payload = {
+                transport: {
+                    road: {
+                        speedKmH: p.transport.road.speed,
+                        costPerKm: p.transport.road.cost,
+                        co2PerKm: p.transport.road.co2
+                    },
+                    rail: {
+                        speedKmH: p.transport.rail.speed,
+                        costPerKm: p.transport.rail.cost,
+                        co2PerKm: p.transport.rail.co2
+                    },
+                    sea: {
+                        speedKmH: p.transport.sea.speed,
+                        costPerKm: p.transport.sea.cost,
+                        co2PerKm: p.transport.sea.co2
+                    },
+                    air: {
+                        speedKmH: p.transport.air.speed,
+                        costPerKm: p.transport.air.cost,
+                        co2PerKm: p.transport.air.co2
+                    }
+                },
+                tariff: {
+                    crossBorderCost: p.tariff.crossBorderCost,
+                    crossBorderDelayHours: p.tariff.crossBorderDelayH
+                }
+            };
+            fetch(baseUrl + "/api/config/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).catch(() => {});
+        },
+
+
         handleNodeClick: (marker) => {
             if (App.state.mode === 'connect') {
                 if (!App.state.tempStart) {
                     App.state.tempStart = marker;
-                    // Custom highlight effect? 
-                    // AMap markers with custom content don't support setAnimation well if content is div.
-                    // We can just rely on Toast.
                     ui.showToast(`已选择起点: ${marker.getExtData().name}`);
                 } else {
                     if (App.state.tempStart === marker) return;
                     const start = App.state.tempStart;
-                    App.state.tempStart = null;
-                    ui.openPlanModal(start, marker);
+                    const end = marker;
+                    logic.createConnection(start, end);
+                    if (App.state.connectMode === 'chain') {
+                        App.state.tempStart = end;
+                    }
                 }
             }
         },
 
-        selectRoute: (type) => {
-            const plan = App.state.pendingPlan;
-            if(!plan) return;
-
+        createConnection: (start, end) => {
+            const type = App.state.currentLineType || '1';
             let color = '#fff';
             let style = 'solid';
-            if(type === '1') { color = '#3366FF'; } // Road
-            if(type === '2') { color = '#00FFFF'; style='dashed'; } // Sea
-            if(type === '3') { color = '#FF00FF'; } // Air
-            if(type === '4') { color = '#ccc'; style='dashed'; } // Rail
+            if(type === '1') { color = '#3366FF'; }
+            if(type === '2') { color = '#00FFFF'; style='dashed'; }
+            if(type === '3') { color = '#FF00FF'; }
+            if(type === '4') { color = '#ccc'; style='dashed'; }
 
-            const s = plan.start.getPosition();
-            const e = plan.end.getPosition();
-            const key = [plan.start.getExtData().name, plan.end.getExtData().name].sort().join('-');
+            const s = start.getPosition();
+            const e = end.getPosition();
+            const key = [start.getExtData().name, end.getExtData().name].sort().join('-');
             App.state.routeCounts[key] = (App.state.routeCounts[key] || 0) + 1;
             const offsetIdx = App.state.routeCounts[key] - 1;
 
-            visuals.drawConnection(s, e, color, style, type, offsetIdx);
+            const route = visuals.drawConnection(s, e, color, style, type, offsetIdx);
             
-            // Stats
-            const dist = AMap.GeometryUtil.distance(s, e) / 1000;
-            let cost = 0, co2 = 0;
-            if(type==='1') { cost=dist*2; co2=dist*0.05; }
-            if(type==='2') { cost=dist*0.5; co2=dist*0.08; }
-            if(type==='3') { cost=dist*8; co2=dist*0.5; }
-            if(type==='4') { cost=dist*1; co2=dist*0.02; }
+            const distKm = AMap.GeometryUtil.distance(s, e) / 1000;
+            let cost = 0, co2 = 0, hours = 0;
+            const tp = App.state.params.transport;
+            if(type==='1') { cost=distKm*tp.road.cost; co2=distKm*tp.road.co2; hours = distKm/Math.max(tp.road.speed, 1); }
+            if(type==='2') { cost=distKm*tp.sea.cost; co2=distKm*tp.sea.co2; hours = distKm/Math.max(tp.sea.speed, 1); }
+            if(type==='3') { cost=distKm*tp.air.cost; co2=distKm*tp.air.co2; hours = distKm/Math.max(tp.air.speed, 1); }
+            if(type==='4') { cost=distKm*tp.rail.cost; co2=distKm*tp.rail.co2; hours = distKm/Math.max(tp.rail.speed, 1); }
             
-            if(plan.isCrossBorder) { cost += 500; }
+            const fromR = start.getExtData().region;
+            const toR = end.getExtData().region;
+            const isCrossBorder = fromR !== toR;
+            if(isCrossBorder) { 
+                cost += App.state.params.tariff.crossBorderCost; 
+                hours += App.state.params.tariff.crossBorderDelayH; 
+                visuals.addCustomsPointBetween(s, e); 
+                App.state.stats.crossBorderLegs = (App.state.stats.crossBorderLegs || 0) + 1;
+            }
 
             App.state.stats.cost += cost;
             App.state.stats.co2 += co2;
-            
-            App.connections.push({ from: plan.start.getExtData().name, to: plan.end.getExtData().name, type, cost, co2 });
+            App.state.stats.time += hours;
+            App.state.stats.legs = (App.state.stats.legs || 0) + 1;
+            route._fromName = start.getExtData().name;
+            route._toName = end.getExtData().name;
+            route._hours = hours;
+            route._cost = cost;
+            route._co2 = co2;
+            route._distKm = distKm;
+            App.connections.push({ from: start.getExtData().name, to: end.getExtData().name, type, cost, co2, hours, distKm, route, isCrossBorder });
 
-            ui.closeModals();
             ui.updateStats();
             ui.showToast("线路建立成功");
         },
 
+        findMarkerByName: (name) => {
+            return App.nodes.find(m => {
+                const ext = m.getExtData() || {};
+                return ext.id === name || ext.name === name;
+            }) || null;
+        },
+
+        autoInferPlanEndpoints: () => {
+            // Fix: If the user has already manually selected start/end points, do not overwrite them.
+            if (App.state.planStart && App.state.planEnd) {
+                return true;
+            }
+            if (App.connections.length === 0) return false;
+            const degree = {};
+            const nodeNames = new Set();
+            App.connections.forEach(c => {
+                if (!degree[c.from]) degree[c.from] = 0;
+                if (!degree[c.to]) degree[c.to] = 0;
+                degree[c.from] += 1;
+                degree[c.to] += 1;
+                nodeNames.add(c.from);
+                nodeNames.add(c.to);
+            });
+            const names = Array.from(nodeNames);
+            if (!names.length) return false;
+            let maxDegreeName = names[0];
+            names.forEach(n => {
+                if ((degree[n] || 0) > (degree[maxDegreeName] || 0)) {
+                    maxDegreeName = n;
+                }
+            });
+            const leafNames = names.filter(n => (degree[n] || 0) === 1);
+            let startMarker = App.state.planStart;
+            let endMarker = App.state.planEnd;
+            const findMarker = logic.findMarkerByName;
+            if (!startMarker && degree[maxDegreeName] > 1 && leafNames.length) {
+                startMarker = findMarker(maxDegreeName);
+                if (leafNames.length === 1) {
+                    endMarker = findMarker(leafNames[0]);
+                } else {
+                    let bestLeaf = leafNames[0];
+                    const centerMarker = startMarker || findMarker(maxDegreeName);
+                    if (centerMarker && typeof AMap !== 'undefined' && AMap.GeometryUtil && AMap.GeometryUtil.distance) {
+                        let bestDist = -1;
+                        leafNames.forEach(leaf => {
+                            const leafMarker = findMarker(leaf);
+                            if (leafMarker) {
+                                const d = AMap.GeometryUtil.distance(centerMarker.getPosition(), leafMarker.getPosition());
+                                if (d > bestDist) {
+                                    bestDist = d;
+                                    bestLeaf = leaf;
+                                }
+                            }
+                        });
+                    }
+                    endMarker = findMarker(bestLeaf);
+                }
+            } else if (!startMarker && !endMarker && leafNames.length >= 2) {
+                startMarker = findMarker(leafNames[0]);
+                endMarker = findMarker(leafNames[leafNames.length - 1]);
+            }
+            if ((!startMarker || !endMarker) && App.nodes.length >= 2) {
+                if (!startMarker) startMarker = App.nodes[0];
+                if (!endMarker) endMarker = App.nodes[App.nodes.length - 1];
+            }
+            if (!startMarker || !endMarker) return false;
+            App.state.planStart = startMarker;
+            App.state.planEnd = endMarker;
+            logic.persistPlanEndpoints();
+            ui.showToast("系统已根据连线自动识别规划起点和终点");
+            return true;
+        },
+
         autoRoute: () => {
             if(App.nodes.length < 2) return;
-            ui.showToast("AI 正在计算最优网络拓扑...");
-            const hubs = App.nodes.filter(n => n.getExtData().level == 1);
-            const others = App.nodes.filter(n => n.getExtData().level != 1);
+            ui.showToast("AI 正在计算最优分级网络拓扑 (L3->L2->L1)...");
+            
+            // Clear existing routes to avoid mess
+            App.routes.forEach(r => App.map.remove(r));
+            App.routes = [];
+            App.connections = [];
+            App.state.stats = { cost: 0, co2: 0, dist: 0, time: 0, legs: 0, crossBorderLegs: 0 };
+            App.state.routeCounts = {};
 
-            others.forEach(node => {
+            const hubs = App.nodes.filter(n => n.getExtData().level == 1);
+            const regionals = App.nodes.filter(n => n.getExtData().level == 2);
+            const locals = App.nodes.filter(n => n.getExtData().level == 3);
+
+            // 1. Level 3 (Local) -> Nearest Level 2 (Regional)
+            locals.forEach(l => {
+                let nearest = null;
+                let minD = Infinity;
+                regionals.forEach(r => {
+                    // Constraint: Must be same region if possible, or just nearest
+                    if(l.getExtData().region === r.getExtData().region) {
+                        const d = AMap.GeometryUtil.distance(l.getPosition(), r.getPosition());
+                        if(d < minD) { minD = d; nearest = r; }
+                    }
+                });
+                // Fallback to any regional if no same region
+                if(!nearest) {
+                     regionals.forEach(r => {
+                        const d = AMap.GeometryUtil.distance(l.getPosition(), r.getPosition());
+                        if(d < minD) { minD = d; nearest = r; }
+                    });
+                }
+                
+                if(nearest) {
+                    const route = visuals.drawConnection(l.getPosition(), nearest.getPosition(), '#ccc', 'dashed', '1', 0);
+                    logic.recordStat(l, nearest, '1', minD, route);
+                }
+            });
+
+            // 2. Level 2 (Regional) -> Nearest Level 1 (Global Hub)
+            regionals.forEach(r => {
                 let nearest = null;
                 let minD = Infinity;
                 hubs.forEach(h => {
-                    const d = AMap.GeometryUtil.distance(node.getPosition(), h.getPosition());
+                    const d = AMap.GeometryUtil.distance(r.getPosition(), h.getPosition());
                     if(d < minD) { minD = d; nearest = h; }
                 });
                 if(nearest) {
-                    visuals.drawConnection(node.getPosition(), nearest.getPosition(), '#3366FF', 'solid', '1', 0);
-                    App.state.stats.cost += (minD/1000) * 2;
-                    App.state.stats.co2 += (minD/1000) * 0.05;
+                    const route = visuals.drawConnection(r.getPosition(), nearest.getPosition(), '#3366FF', 'solid', '1', 0);
+                    logic.recordStat(r, nearest, '1', minD, route);
                 }
             });
+
+            // 3. Level 1 (Global) Interconnect (MST-like or Hub-and-Spoke)
+            // For demo: Connect key hubs based on region
+            const hubGroups = {};
+            hubs.forEach(h => {
+                const reg = h.getExtData().region;
+                if(!hubGroups[reg]) hubGroups[reg] = [];
+                hubGroups[reg].push(h);
+            });
+
+            // Connect hubs within same region
+            Object.values(hubGroups).forEach(group => {
+                for(let i=0; i<group.length-1; i++) {
+                    const route = visuals.drawConnection(group[i].getPosition(), group[i+1].getPosition(), '#3366FF', 'solid', '4', 0);
+                    const d = AMap.GeometryUtil.distance(group[i].getPosition(), group[i+1].getPosition());
+                    logic.recordStat(group[i], group[i+1], '4', d, route);
+                }
+            });
+
+            // Connect regions (Cross-border)
+            // CN <-> EU (Sea/Rail)
+            // CN <-> US (Sea/Air)
+            // US <-> EU (Air/Sea)
+            const findHub = (reg) => hubs.find(h => h.getExtData().region === reg);
+            const cnHub = findHub('CN'); // Shanghai/Beijing
+            const euHub = findHub('EU'); // London/Rotterdam
+            const usHub = findHub('US'); // LA/NY
+            
+            if(cnHub && euHub) {
+                const route = visuals.drawConnection(cnHub.getPosition(), euHub.getPosition(), '#00FFFF', 'dashed', '2', 0);
+                logic.recordStat(cnHub, euHub, '2', 8000000, route);
+            }
+            if(cnHub && usHub) {
+                 const route = visuals.drawConnection(cnHub.getPosition(), usHub.getPosition(), '#FF00FF', 'solid', '3', 0);
+                 logic.recordStat(cnHub, usHub, '3', 10000000, route);
+            }
+            if(usHub && euHub) {
+                 const route = visuals.drawConnection(usHub.getPosition(), euHub.getPosition(), '#FF00FF', 'solid', '3', 0);
+                 logic.recordStat(usHub, euHub, '3', 6000000, route);
+            }
+
             ui.updateStats();
+            ui.showToast("AI 网络拓扑优化完成 (Total Cost Optimized)");
+        },
+
+        recordStat: (n1, n2, type, dist, route) => {
+            const distKm = dist / 1000;
+            let cost = 0, co2 = 0, hours = 0;
+            const tp = App.state.params.transport;
+            if(type==='1') { cost=distKm*tp.road.cost; co2=distKm*tp.road.co2; hours = distKm/Math.max(tp.road.speed, 1); }
+            if(type==='2') { cost=distKm*tp.sea.cost; co2=distKm*tp.sea.co2; hours = distKm/Math.max(tp.sea.speed, 1); }
+            if(type==='3') { cost=distKm*tp.air.cost; co2=distKm*tp.air.co2; hours = distKm/Math.max(tp.air.speed, 1); }
+            if(type==='4') { cost=distKm*tp.rail.cost; co2=distKm*tp.rail.co2; hours = distKm/Math.max(tp.rail.speed, 1); }
+            
+            const isCrossBorder = n1.getExtData().region !== n2.getExtData().region;
+            if(isCrossBorder) {
+                cost += App.state.params.tariff.crossBorderCost;
+                hours += App.state.params.tariff.crossBorderDelayH;
+                visuals.addCustomsPointBetween(n1.getPosition(), n2.getPosition());
+                App.state.stats.crossBorderLegs = (App.state.stats.crossBorderLegs || 0) + 1;
+            }
+
+            App.state.stats.cost += cost;
+            App.state.stats.co2 += co2;
+            App.state.stats.time += hours;
+            App.state.stats.legs = (App.state.stats.legs || 0) + 1;
+            App.connections.push({ from: n1.getExtData().name, to: n2.getExtData().name, type, cost, co2, hours, distKm, route, isCrossBorder });
         },
 
         updateLOD: () => {
             const zoom = App.map.getZoom();
             App.nodes.forEach(n => {
                 const lvl = n.getExtData().level;
-                if(zoom < 5) { lvl == 1 ? n.show() : n.hide(); }
-                else if(zoom < 7) { lvl <= 2 ? n.show() : n.hide(); }
-                else { n.show(); }
+                // Enhanced LOD: Scale markers based on zoom
+                // We cannot easily scale DOM markers, but we can show/hide
+                if(zoom < 4) { 
+                    lvl == 1 ? n.show() : n.hide(); 
+                } else if(zoom < 6) { 
+                    lvl <= 2 ? n.show() : n.hide(); 
+                } else { 
+                    n.show(); 
+                }
             });
         },
 
         simulateEvent: () => {
+            // Tariff Simulation
+            const tariffNode = [105.0, 45.0]; // Mock border location
+            ui.showToast("⚡ 模拟启动: 关税政策突变与自然灾害检测...");
+            
+            setTimeout(() => {
+                ui.showToast("💰 关税预警: 跨区域运输成本临时增加 (Tariff Spike)");
+                App.state.stats.cost *= App.state.params.events.tariffSpikeFactor;
+                ui.updateStats();
+                document.getElementById('kpi-cost').style.color = '#ff3366'; // Red alert
+                setTimeout(() => document.getElementById('kpi-cost').style.color = 'var(--neon-blue)', 3000);
+            }, 1000);
+
+            // Typhoon Logic
+            // 1. Generate random location near East Asia (Mock)
+            const typhoonCenter = [125 + (Math.random()*10 - 5), 25 + (Math.random()*10 - 5)];
+            
             const circle = new AMap.Circle({
-                center: [130, 20], radius: 800000,
+                center: typhoonCenter, radius: 500000,
                 strokeColor: "#F33", strokeWeight: 2, fillColor: "rgba(255,0,0,0.3)", zIndex: 999
             });
             App.map.add(circle);
-            ui.showToast("警报: 太平洋海域探测到台风活动!");
+            ui.showToast(`警报: 坐标 [${typhoonCenter[0].toFixed(1)}, ${typhoonCenter[1].toFixed(1)}] 探测到台风活动!`);
             
+            // 2. Check affected routes
+            let affectedCount = 0;
+            App.routes.forEach(route => {
+                // Simple check: distance from route start/end to typhoon center
+                // A better way is checking if path intersects, but start/end is good enough for mock
+                // Mock logic: assume any route near East Asia is affected
+                const path = route.getPath();
+                const start = path[0];
+                const end = path[path.length-1];
+                
+                const d1 = AMap.GeometryUtil.distance(start, typhoonCenter);
+                const d2 = AMap.GeometryUtil.distance(end, typhoonCenter);
+                
+                if (d1 < 2000000 || d2 < 2000000) { // If within 2000km range
+                    route.setOptions({ strokeColor: '#FF0000', strokeStyle: 'solid' }); // Turn RED
+                    affectedCount++;
+                }
+            });
+            
+            if (affectedCount > 0) {
+                 setTimeout(() => ui.showToast(`⚠️ ${affectedCount} 条航线受台风影响已红色预警，正在重规划...`), 2000);
+            }
+
+            // Flash Effect
             let count = 0;
             const interval = setInterval(() => {
                 count++;
                 circle.setOptions({ fillOpacity: count%2==0 ? 0.3 : 0.6 });
-                if(count > 6) { clearInterval(interval); App.map.remove(circle); }
+                if(count > 10) { clearInterval(interval); App.map.remove(circle); }
             }, 500);
         },
 
-        clearAll: () => {
-            App.map.clearMap();
-            App.nodes = [];
-            App.routes = [];
-            App.connections = [];
-            App.state.stats = { cost: 0, co2: 0 };
-            App.state.routeCounts = {};
+        startEventPreview: (lnglat, config) => {
+            if(!App.map || !lnglat) return;
+            const centerLngLat = lnglat;
+            const cfg = config || {};
+            const type = cfg.type || 'typhoon';
+            let radiusKm = typeof cfg.radiusKm === 'number' ? cfg.radiusKm : 2000;
+            let delayHours = typeof cfg.delayHours === 'number' ? cfg.delayHours : 24;
+            let costFactor = typeof cfg.costFactor === 'number' ? cfg.costFactor : 1.2;
+            if(radiusKm < 50) radiusKm = 50;
+            let strokeColor = "#F33";
+            let fillColor = "rgba(255,0,0,0.25)";
+            if(type === 'congestion') {
+                strokeColor = "#ffcc00";
+                fillColor = "rgba(255,204,0,0.25)";
+            } else if(type === 'tariff') {
+                strokeColor = "#00ff99";
+                fillColor = "rgba(0,255,153,0.25)";
+            } else if(type === 'block') {
+                strokeColor = "#cccccc";
+                fillColor = "rgba(200,200,200,0.2)";
+            }
+            const circle = new AMap.Circle({
+                center: [centerLngLat.getLng(), centerLngLat.getLat()],
+                radius: radiusKm * 1000,
+                strokeColor: strokeColor,
+                strokeWeight: 2,
+                fillColor: fillColor,
+                zIndex: 999
+            });
+            const marker = new AMap.Marker({
+                position: centerLngLat,
+                draggable: true,
+                cursor: 'move',
+                content: `<div style="width:14px;height:14px;border-radius:50%;border:2px solid ${strokeColor};background:rgba(0,0,0,0.8);"></div>`,
+                offset: new AMap.Pixel(-7, -7),
+                zIndex: 1000
+            });
+            marker.on('dragging', () => {
+                const pos = marker.getPosition();
+                circle.setCenter(pos);
+            });
+            if(App.state.pendingEventPreview && App.state.pendingEventPreview.circle) {
+                try { App.map.remove(App.state.pendingEventPreview.circle); } catch(e) {}
+            }
+            if(App.state.pendingEventPreview && App.state.pendingEventPreview.marker) {
+                try { App.map.remove(App.state.pendingEventPreview.marker); } catch(e) {}
+            }
+            App.map.add(circle);
+            App.map.add(marker);
+            App.state.pendingEventPreview = {
+                circle,
+                marker,
+                config: {
+                    type,
+                    radiusKm,
+                    delayHours,
+                    costFactor
+                }
+            };
+            ui.showToast("事件预览已创建，可拖动圆心调整位置，再次点击地图确认放置");
+        },
+
+        confirmPendingEvent: () => {
+            const preview = App.state.pendingEventPreview;
+            if(!preview || !preview.circle) return;
+            const circle = preview.circle;
+            const marker = preview.marker;
+            const center = circle.getCenter();
+            const cfg = preview.config || {};
+            const type = cfg.type || 'typhoon';
+            const radiusKm = typeof cfg.radiusKm === 'number' ? cfg.radiusKm : 2000;
+            let delayHours = typeof cfg.delayHours === 'number' ? cfg.delayHours : 24;
+            let costFactor = typeof cfg.costFactor === 'number' ? cfg.costFactor : 1.2;
+            const id = "evt_" + Date.now();
+            let affectedModes = null;
+            if(type === 'typhoon') {
+                affectedModes = ['sea','air','road'];
+            } else if(type === 'congestion') {
+                affectedModes = ['sea','air','road','rail'];
+            } else if(type === 'tariff') {
+                affectedModes = ['sea','air','road','rail'];
+            } else if(type === 'block') {
+                affectedModes = ['sea','air','road','rail'];
+                delayHours = 0;
+                costFactor = 1;
+            }
+            const ev = {
+                id,
+                type,
+                center: [center.getLng(), center.getLat()],
+                radiusKm,
+                delayHours,
+                costFactor,
+                enabled: true,
+                affectedModes
+            };
+            App.state.events.push(ev);
+            circle._eventId = id;
+            App.state.eventOverlays.push(circle);
+            if(marker) {
+                try { App.map.remove(marker); } catch(e) {}
+            }
+            App.state.pendingEventPreview = null;
+            App.state.pendingEventConfig = null;
+            let msg = "事件已放置";
+            if(type === 'typhoon') msg = "天气事件已放置";
+            if(type === 'congestion') msg = "拥堵事件已放置";
+            if(type === 'tariff') msg = "关税事件已放置";
+            if(type === 'block') msg = "线路中断事件已放置";
+            ui.renderEventList();
+            ui.showToast(msg);
+        },
+
+        cancelPendingEvent: () => {
+            const preview = App.state.pendingEventPreview;
+            if(preview) {
+                if(preview.circle) {
+                    try { App.map.remove(preview.circle); } catch(e) {}
+                }
+                if(preview.marker) {
+                    try { App.map.remove(preview.marker); } catch(e) {}
+                }
+            }
+            App.state.pendingEventPreview = null;
+            App.state.pendingEventConfig = null;
+            ui.showToast("事件预览已取消");
+        },
+
+        placeEventAt: (lnglat, config) => {
+            if(!App.map || !lnglat) return;
+            const center = [lnglat.getLng(), lnglat.getLat()];
+            const cfg = config || {};
+            const type = cfg.type || 'typhoon';
+            let radiusKm = typeof cfg.radiusKm === 'number' ? cfg.radiusKm : 2000;
+            let delayHours = typeof cfg.delayHours === 'number' ? cfg.delayHours : 24;
+            let costFactor = typeof cfg.costFactor === 'number' ? cfg.costFactor : 1.2;
+            if(radiusKm < 50) radiusKm = 50;
+            const id = "evt_" + Date.now();
+            let affectedModes = null;
+            if(type === 'typhoon') {
+                affectedModes = ['sea','air','road'];
+            } else if(type === 'congestion') {
+                affectedModes = ['sea','air','road','rail'];
+            } else if(type === 'tariff') {
+                affectedModes = ['sea','air','road','rail'];
+            } else if(type === 'block') {
+                affectedModes = ['sea','air','road','rail'];
+                delayHours = 0;
+                costFactor = 1;
+            }
+            const ev = {
+                id,
+                type,
+                center,
+                radiusKm,
+                delayHours,
+                costFactor,
+                enabled: true,
+                affectedModes
+            };
+            App.state.events.push(ev);
+            let strokeColor = "#F33";
+            let fillColor = "rgba(255,0,0,0.25)";
+            if(type === 'congestion') {
+                strokeColor = "#ffcc00";
+                fillColor = "rgba(255,204,0,0.25)";
+            } else if(type === 'tariff') {
+                strokeColor = "#00ff99";
+                fillColor = "rgba(0,255,153,0.25)";
+            } else if(type === 'block') {
+                strokeColor = "#cccccc";
+                fillColor = "rgba(200,200,200,0.2)";
+            }
+            const circle = new AMap.Circle({
+                center,
+                radius: radiusKm * 1000,
+                strokeColor: strokeColor,
+                strokeWeight: 2,
+                fillColor: fillColor,
+                zIndex: 999
+            });
+            App.map.add(circle);
+            circle._eventId = id;
+            App.state.eventOverlays.push(circle);
+            let msg = "事件已放置";
+            if(type === 'typhoon') msg = "天气事件已放置";
+            if(type === 'congestion') msg = "拥堵事件已放置";
+            if(type === 'tariff') msg = "关税事件已放置";
+            if(type === 'block') msg = "线路中断事件已放置";
+            ui.showToast(msg);
+        },
+
+        clearEvents: () => {
+            if(App.state.eventOverlays && App.map) {
+                App.state.eventOverlays.forEach(o => {
+                    try { App.map.remove(o); } catch(e) {}
+                });
+            }
+            App.state.events = [];
+            App.state.eventOverlays = [];
+            ui.showToast("所有事件已清除");
+        },
+
+        toggleEventEnabled: (id) => {
+            const ev = App.state.events.find(e => e.id === id);
+            if(!ev) return;
+            ev.enabled = ev.enabled === false ? true : false;
+            const overlay = (App.state.eventOverlays || []).find(o => o._eventId === id);
+            if(overlay) {
+                const visible = ev.enabled !== false;
+                overlay.setOptions({ strokeOpacity: visible ? 1 : 0.3, fillOpacity: visible ? 0.25 : 0.05 });
+                if(!visible) overlay.hide(); else overlay.show();
+            }
+            ui.renderEventList();
+        },
+
+        removeEvent: (id) => {
+            App.state.events = App.state.events.filter(e => e.id !== id);
+            if(App.state.eventOverlays && App.map) {
+                const remain = [];
+                App.state.eventOverlays.forEach(o => {
+                    if(o._eventId === id) {
+                        try { App.map.remove(o); } catch(e) {}
+                    } else {
+                        remain.push(o);
+                    }
+                });
+                App.state.eventOverlays = remain;
+            }
+            ui.renderEventList();
+            ui.showToast("事件已删除");
+        },
+
+        applyLegModesToConnections: (legs) => {
+            if(!Array.isArray(legs) || !legs.length) return;
+            const toType = (mode) => {
+                if(mode === 'road' || mode === 1 || mode === '1') return '1';
+                if(mode === 'sea' || mode === 2 || mode === '2') return '2';
+                if(mode === 'air' || mode === 3 || mode === '3') return '3';
+                if(mode === 'rail' || mode === 4 || mode === '4') return '4';
+                return '1';
+            };
+            const colorAndStyle = (t) => {
+                if(t === '1') return { color: '#3366FF', style: 'solid', dash: [0,0] };
+                if(t === '2') return { color: '#00FFFF', style: 'dashed', dash: [10,10] };
+                if(t === '3') return { color: '#FF00FF', style: 'solid', dash: [0,0] };
+                if(t === '4') return { color: '#ccc', style: 'dashed', dash: [10,10] };
+                return { color: '#3366FF', style: 'solid', dash: [0,0] };
+            };
+            legs.forEach(leg => {
+                const fromId = leg.fromId;
+                const toId = leg.toId;
+                if(!fromId || !toId) return;
+                const t = toType(leg.mode);
+                const conn = App.connections.find(c =>
+                    (c.from === fromId && c.to === toId) ||
+                    (c.from === toId && c.to === fromId)
+                );
+                if(!conn || !conn.route) return;
+                conn.type = t;
+                conn.route._type = t;
+                const cfg = colorAndStyle(t);
+                conn.route._baseColor = cfg.color;
+                const opt = { strokeColor: cfg.color };
+                if(typeof conn.route.setOptions === 'function') {
+                    opt.strokeStyle = cfg.style;
+                    opt.strokeDasharray = cfg.dash;
+                    conn.route.setOptions(opt);
+                }
+            });
+        },
+
+        syncBackendNodes: (backendNodes) => {
+            if(!App.map || !Array.isArray(backendNodes) || !backendNodes.length) return;
+            const existingIds = new Set();
+            App.nodes.forEach(m => {
+                const ext = m.getExtData() || {};
+                if(ext.id) existingIds.add(ext.id);
+                else if(ext.name) existingIds.add(ext.name);
+            });
+            const virtualList = [];
+            backendNodes.forEach(n => {
+                if(!n) return;
+                const id = n.id || n.name;
+                if(!id) return;
+                if(existingIds.has(id)) return;
+                if(typeof n.lng !== 'number' || typeof n.lat !== 'number') return;
+                const pos = new AMap.LngLat(n.lng, n.lat);
+                const level = typeof n.level === 'number' ? n.level : 2;
+                const region = n.region || 'CN';
+                const type = n.type || 'warehouse';
+                const name = n.name || id;
+                const marker = logic.addNode(name, pos, level, region, type);
+                const ext = marker.getExtData() || {};
+                ext.isVirtual = true;
+                ext.id = id;
+                marker.setExtData(ext);
+                virtualList.push(marker);
+            });
+            App.state.virtualMarkers = (App.state.virtualMarkers || []).concat(virtualList);
             ui.updateStats();
         },
 
+        planOptimalPath: (objective) => {
+            if(!App.nodes.length) { ui.showToast("请先搭建网络骨架"); return; }
+            if(!App.state.planStart) { ui.showToast("请先设置起点"); return; }
+            
+            // Collect destinations
+            let destinations = [];
+            if(App.state.planEndList && App.state.planEndList.length > 0) {
+                destinations = App.state.planEndList;
+            } else if (App.state.planEnd) {
+                destinations = [App.state.planEnd];
+            }
+            
+            if(!destinations.length) { ui.showToast("请先设置终点"); return; }
+
+            const startName = (App.state.planStart.getExtData() || {}).name;
+            const originId = (App.state.planStart.getExtData() || {}).id || startName;
+
+            const nodes = App.nodes.map(marker => {
+                const pos = marker.getPosition();
+                const ext = marker.getExtData() || {};
+                return {
+                    id: ext.name,
+                    name: ext.name,
+                    lng: pos.getLng(),
+                    lat: pos.getLat(),
+                    region: ext.region || 'CN',
+                    type: ext.type || 'port'
+                };
+            });
+
+            const buildAllEdges = () => {
+                const list = [];
+                App.connections.forEach(c => {
+                    const base = {
+                        from: c.from,
+                        to: c.to,
+                        mode: c.type,
+                        distanceKm: c.distKm
+                    };
+                    list.push(base);
+                    list.push({
+                        from: c.to,
+                        to: c.from,
+                        mode: c.type,
+                        distanceKm: c.distKm
+                    });
+                });
+                return list;
+            };
+
+            let objectiveApi = 'fast';
+            if(objective === 'time') objectiveApi = 'fast';
+            else if(objective === 'cost') objectiveApi = 'cheap';
+            else if(objective === 'co2') objectiveApi = 'green';
+            else if(objective === 'balanced') objectiveApi = 'balanced';
+
+            const events = Array.isArray(App.state.events) ? App.state.events.filter(ev => ev && ev.enabled !== false) : [];
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
+            const allEdges = buildAllEdges();
+
+            ui.showToast(`AI 正在规划 ${destinations.length} 条路径...`);
+
+            // Reset state
+            App.state.multiPlanRouteGroups = [];
+            App.state.lastPlanRoutes = [];
+            logic.clearVirtualMarkers();
+
+            const promises = destinations.map(destMarker => {
+                const destExt = destMarker.getExtData() || {};
+                const destinationId = destExt.id || destExt.name;
+                
+                const payload = {
+                    nodes,
+                    originId,
+                    destinationId,
+                    objective: objectiveApi,
+                    events,
+                    edges: allEdges
+                };
+                
+                return fetch(baseUrl + "/api/plan/route", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) return null;
+                    return data;
+                })
+                .catch(e => null);
+            });
+
+            Promise.all(promises).then(results => {
+                const validResults = results.filter(r => r && r.legs && r.legs.length);
+                if (validResults.length === 0) {
+                    ui.showToast("未能规划出有效路径");
+                    return;
+                }
+
+                validResults.forEach(result => {
+                    const backendNodes = result.nodes || [];
+                    if(backendNodes.length) logic.syncBackendNodes(backendNodes);
+
+                    const legs = result.legs;
+                    logic.applyLegModesToConnections(legs);
+                    visuals.buildNavPolylinesForLegs(legs, true);
+
+                    const activeRoutes = [];
+                    legs.forEach(leg => {
+                        let routeLike = null;
+                        const conn = App.connections.find(c =>
+                            (c.from === leg.fromId && c.to === leg.toId) ||
+                            (c.from === leg.toId && c.to === leg.fromId)
+                        );
+                        if(conn && conn.route) {
+                            routeLike = conn.route;
+                        } else if (leg._navLine) {
+                            routeLike = leg._navLine;
+                        }
+                        if(routeLike && !activeRoutes.includes(routeLike)) {
+                            activeRoutes.push(routeLike);
+                        }
+                    });
+                    
+                    if(activeRoutes.length) {
+                        App.state.multiPlanRouteGroups.push(activeRoutes);
+                        activeRoutes.forEach(r => {
+                            if(!App.state.lastPlanRoutes.includes(r)) {
+                                App.state.lastPlanRoutes.push(r);
+                            }
+                        });
+                    }
+                });
+
+                visuals.highlightPlanRoutes(App.state.lastPlanRoutes);
+                if(App.map && App.state.lastPlanRoutes.length) {
+                    App.map.setFitView(App.state.lastPlanRoutes);
+                }
+                
+                ui.updateStats();
+                ui.closeModals();
+                ui.showToast(`AI 规划完成: 共 ${validResults.length} 条线路`);
+            })
+            .catch(err => {
+                console.error(err);
+                ui.showToast("规划过程出错");
+            });
+        },
+
+        getEdgeWeight: (edge, objective) => {
+            const time = edge.hours || 0;
+            const cost = edge.cost || 0;
+            const co2 = edge.co2 || 0;
+            if(objective === 'time') return time;
+            if(objective === 'cost') return cost;
+            if(objective === 'co2') return co2;
+            return time * 0.4 + cost * 0.4 + co2 * 0.2;
+        },
+
+        buildAnimationSequence: (routeList) => {
+            if(!routeList || !routeList.length) return [];
+            const routeSet = new Set(routeList);
+            const cons = App.connections.filter(c => c.route && routeSet.has(c.route));
+            if(!cons.length) return routeList;
+            const used = new Set();
+            const result = [];
+            const getStartIndex = () => {
+                if(App.state.planStart) {
+                    const startName = (App.state.planStart.getExtData() || {}).name;
+                    if(startName) {
+                        const idx = cons.findIndex(c => c.from === startName || c.to === startName);
+                        if(idx >= 0) return idx;
+                    }
+                }
+                return 0;
+            };
+            let currentIndex = getStartIndex();
+            while(used.size < cons.length) {
+                if(currentIndex == null || currentIndex < 0 || currentIndex >= cons.length || used.has(currentIndex)) {
+                    for(let i=0;i<cons.length;i++) {
+                        if(!used.has(i)) {
+                            currentIndex = i;
+                            break;
+                        }
+                    }
+                }
+                if(used.has(currentIndex)) break;
+                used.add(currentIndex);
+                const cur = cons[currentIndex];
+                if(cur.route && !result.includes(cur.route)) {
+                    result.push(cur.route);
+                }
+                let nextIndex = -1;
+                for(let i=0;i<cons.length;i++) {
+                    if(used.has(i)) continue;
+                    const c = cons[i];
+                    if(c.from === cur.to || c.to === cur.to || c.from === cur.from || c.to === cur.from) {
+                        nextIndex = i;
+                        break;
+                    }
+                }
+                if(nextIndex === -1) {
+                    currentIndex = -1;
+                } else {
+                    currentIndex = nextIndex;
+                }
+            }
+            return result.length ? result : routeList;
+        },
+
+        playPlanAnimation: () => {
+            const playRoutesOnce = (routes, onComplete) => {
+                if(!App.map || !routes || !routes.length) {
+                    if(typeof onComplete === 'function') onComplete();
+                    return;
+                }
+                let list = routes;
+                if(!App.state.lastPlanRoutes || !App.state.lastPlanRoutes.length) {
+                    list = logic.buildAnimationSequence(routes);
+                }
+                let index = 0;
+                const total = list.length;
+                list.forEach(r => visuals.setRouteActive(r, false));
+                const step = () => {
+                    const route = list[index];
+                    visuals.setRouteActive(route, true);
+                    const finishSegment = () => {
+                        index += 1;
+                        if(index < total) {
+                            setTimeout(step, 800);
+                        } else {
+                            if(typeof onComplete === 'function') {
+                                setTimeout(onComplete, 800);
+                            }
+                        }
+                    };
+                    if(route && route._navPath && route._navPath.length) {
+                        const pathArr = route._navPath.map(p => Array.isArray(p) ? new AMap.LngLat(p[0], p[1]) : p);
+                        visuals.startFlowPolyline(pathArr, route._type || '1', finishSegment);
+                    } else if(route && route._seaPath && route._seaPath.length) {
+                        const pathArr = route._seaPath.map(p => Array.isArray(p) ? new AMap.LngLat(p[0], p[1]) : p);
+                        visuals.startFlowPolyline(pathArr, route._type || '2', finishSegment);
+                    } else if(route && route._p1 && route._p2 && route._cp) {
+                        visuals.startFlow(route._p1, route._p2, route._cp, route._type || '1', { loop: false, onComplete: finishSegment });
+                    } else {
+                        finishSegment();
+                    }
+                };
+                if(App.map && list.length) {
+                    App.map.setFitView(list);
+                }
+                step();
+            };
+
+            const groups = Array.isArray(App.state.multiPlanRouteGroups) ? App.state.multiPlanRouteGroups : [];
+            if(groups.length) {
+                const flat = [];
+                groups.forEach(g => {
+                    if(Array.isArray(g)) {
+                        g.forEach(r => {
+                            if(r && !flat.includes(r)) flat.push(r);
+                        });
+                    }
+                });
+                if(!App.map || !flat.length) {
+                    ui.showToast("暂无可演示的线路");
+                    return;
+                }
+                let idx = 0;
+                const runGroup = () => {
+                    while(idx < groups.length && (!groups[idx] || !groups[idx].length)) {
+                        idx += 1;
+                    }
+                    if(idx >= groups.length) {
+                        ui.showToast("AI 路径演示已完成");
+                        return;
+                    }
+                    const current = groups[idx].slice();
+                    idx += 1;
+                    playRoutesOnce(current, runGroup);
+                };
+                ui.showToast("AI 多目的地分步骤路径演示开始");
+                runGroup();
+                return;
+            }
+
+            let routes = (App.state.lastPlanRoutes && App.state.lastPlanRoutes.length) ? App.state.lastPlanRoutes : App.routes;
+            if(!App.map || !routes || routes.length === 0) {
+                ui.showToast("暂无可演示的线路");
+                return;
+            }
+            ui.showToast("AI 分步骤路径演示开始");
+            playRoutesOnce(routes, () => {
+                ui.showToast("AI 路径演示已完成");
+            });
+        },
+
+        clearVirtualMarkers: () => {
+            const list = App.state.virtualMarkers || [];
+            if(App.map && list.length) {
+                const set = new Set(list);
+                list.forEach(m => {
+                    try { App.map.remove(m); } catch(e) {}
+                });
+                App.nodes = App.nodes.filter(n => !set.has(n));
+            }
+            App.state.virtualMarkers = [];
+            ui.updateStats();
+        },
+
+        clearAll: () => {
+            if(App.map) App.map.clearMap();
+            App.nodes = [];
+            App.routes = [];
+            App.connections = [];
+            App.state.stats = { cost: 0, co2: 0, dist: 0, time: 0, legs: 0, crossBorderLegs: 0 };
+            App.state.routeCounts = {};
+            App.state.tempStart = null;
+            App.state.pendingPlan = null;
+            App.state.planStart = null;
+            App.state.planEnd = null;
+            App.state.planEndList = [];
+            App.state.lastPlanRoutes = [];
+            App.state.navPolylines = [];
+            logic.clearVirtualMarkers();
+            ui.updateStats();
+        },
+
+        removeConnectionByRoute: (route) => {
+            if(!route) return;
+            const idx = App.connections.findIndex(c => c.route === route);
+            if(idx === -1) return;
+            const conn = App.connections[idx];
+            App.connections.splice(idx, 1);
+            App.routes = App.routes.filter(r => r !== route);
+            if(App.map) {
+                try { App.map.remove(route); } catch(e) {}
+            }
+            App.state.stats.cost = Math.max(0, (App.state.stats.cost || 0) - (conn.cost || 0));
+            App.state.stats.co2 = Math.max(0, (App.state.stats.co2 || 0) - (conn.co2 || 0));
+            App.state.stats.time = Math.max(0, (App.state.stats.time || 0) - (conn.hours || 0));
+            App.state.stats.legs = Math.max(0, (App.state.stats.legs || 0) - 1);
+            if(conn.isCrossBorder) {
+                App.state.stats.crossBorderLegs = Math.max(0, (App.state.stats.crossBorderLegs || 0) - 1);
+            }
+            App.state.lastPlanRoutes = (App.state.lastPlanRoutes || []).filter(r => r !== route);
+            ui.updateStats();
+            ui.showToast("线路已删除");
+        },
+
         addMockData: () => {
+            // Level 1: Global Hubs (Pink)
             logic.addNode('北京枢纽 (Beijing)', [116.4, 39.9], 1, 'CN');
             logic.addNode('上海港 (Shanghai)', [121.5, 31.2], 1, 'CN');
             logic.addNode('东京枢纽 (Tokyo)', [139.7, 35.7], 1, 'ASEAN');
             logic.addNode('新加坡 (Singapore)', [103.8, 1.3], 1, 'ASEAN');
             logic.addNode('伦敦 (London)', [-0.1, 51.5], 1, 'EU');
             logic.addNode('纽约 (New York)', [-74.0, 40.7], 1, 'US');
+            logic.addNode('洛杉矶 (Los Angeles)', [-118.2, 34.0], 1, 'US');
+            logic.addNode('迪拜 (Dubai)', [55.3, 25.2], 1, 'EU'); // Middle East mapped to EU region for demo
+            logic.addNode('法兰克福 (Frankfurt)', [8.6, 50.1], 1, 'EU');
+            logic.addNode('鹿特丹 (Rotterdam)', [4.4, 51.9], 1, 'EU');
+            logic.addNode('孟菲斯 (Memphis)', [-90.0, 35.1], 1, 'US');
+            logic.addNode('香港 (Hong Kong)', [114.1, 22.3], 1, 'CN');
+
+            // Level 2: Regional Centers (Blue)
             logic.addNode('天津港 (Tianjin)', [117.2, 39.1], 2, 'CN');
-            
-            visuals.drawConnection([116.4, 39.9], [121.5, 31.2], '#3366FF', 'solid', '1', 0);
-            App.state.stats.cost += 2000;
+            logic.addNode('广州 (Guangzhou)', [113.2, 23.1], 2, 'CN');
+            logic.addNode('首尔 (Seoul)', [126.9, 37.5], 2, 'ASEAN');
+            logic.addNode('悉尼 (Sydney)', [151.2, -33.8], 2, 'ASEAN');
+            logic.addNode('巴黎 (Paris)', [2.3, 48.8], 2, 'EU');
+            logic.addNode('芝加哥 (Chicago)', [-87.6, 41.8], 2, 'US');
+
+            logic.addNode('义乌仓 (Yiwu)', [120.0, 29.3], 3, 'CN');
+            logic.addNode('东莞仓 (Dongguan)', [113.7, 23.0], 3, 'CN');
+            logic.addNode('汉堡仓 (Hamburg)', [9.9, 53.5], 3, 'EU');
         }
     };
 
     // --- 3. VISUALS ---
     const visuals = {
+        seaWaypoints: {
+            'suez': [32.5, 30.5], 
+            'malacca': [101.5, 2.5],
+            'panama': [-79.6, 9.0]
+        },
+
+        addCustomsPointBetween: (s, e) => {
+            const p1 = Array.isArray(s) ? new AMap.LngLat(s[0], s[1]) : s;
+            const p2 = Array.isArray(e) ? new AMap.LngLat(e[0], e[1]) : e;
+            const midLng = (p1.getLng() + p2.getLng()) / 2;
+            const midLat = (p1.getLat() + p2.getLat()) / 2;
+            const marker = new AMap.Marker({
+                position: [midLng, midLat],
+                content: `<div style="width:18px;height:18px;border-radius:50%;border:2px solid #ffcc00;color:#ffcc00;font-size:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);box-shadow:0 0 12px #ffcc00;">税</div>`,
+                offset: new AMap.Pixel(-9, -9),
+                zIndex: 120
+            });
+            App.map.add(marker);
+        },
+
+        getSeaPath: (p1, p2) => {
+             // Simple heuristic: If long distance East-West, check if need to pass bottlenecks
+             const lng1 = p1.getLng();
+             const lng2 = p2.getLng();
+             
+             // Route through Suez? (e.g. China <-> Europe)
+             // Approx bounds: Europe (lng < 60), Asia (lng > 60)
+             if ((lng1 < 60 && lng2 > 60) || (lng1 > 60 && lng2 < 60)) {
+                 return [ [lng1, p1.getLat()], visuals.seaWaypoints.suez, visuals.seaWaypoints.malacca, [lng2, p2.getLat()] ];
+             }
+             return null;
+        },
+
         drawConnection: (s, e, color, style, type, offsetIdx) => {
             let arch = 0.2;
             if(offsetIdx > 0) {
@@ -551,8 +2160,31 @@
 
             const p1 = Array.isArray(s) ? new AMap.LngLat(s[0], s[1]) : s;
             const p2 = Array.isArray(e) ? new AMap.LngLat(e[0], e[1]) : e;
+            
             const dx = p2.getLng() - p1.getLng();
             const dy = p2.getLat() - p1.getLat();
+            if(Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return;
+
+            if (type === '2') {
+                const waypoints = visuals.getSeaPath(p1, p2);
+                if (waypoints) {
+                    const polyline = new AMap.Polyline({
+                        path: waypoints,
+                        strokeColor: color, strokeWeight: 3, strokeOpacity: 0.8,
+                        strokeStyle: style, strokeDasharray: [10, 10],
+                        zIndex: 50
+                    });
+                    polyline._baseColor = color;
+                    polyline._baseWeight = 3;
+                    polyline._seaPath = waypoints;
+                    polyline._type = type;
+                    App.map.add(polyline);
+                    App.routes.push(polyline);
+                    visuals.attachRouteInteraction(polyline);
+                    return polyline;
+                }
+            }
+
             const mid = [ (p1.getLng()+p2.getLng())/2, (p1.getLat()+p2.getLat())/2 ];
             const cp = [ mid[0] - dy*arch, mid[1] + dx*arch ];
 
@@ -565,38 +2197,262 @@
                 zIndex: 50
             });
             App.map.add(curve);
+            curve._baseColor = color;
+            curve._baseWeight = 3;
+            curve._p1 = p1;
+            curve._p2 = p2;
+            curve._cp = cp;
+            curve._type = type;
             App.routes.push(curve);
-
-            visuals.startFlow(p1, p2, cp, type);
+            visuals.attachRouteInteraction(curve);
+            return curve;
         },
 
-        startFlow: (p1, p2, cp, type) => {
-            let icon = '✈️';
-            let speed = 10000;
-            if(type=='1') { icon='🚚'; speed=5000; }
-            if(type=='2') { icon='🚢'; speed=3000; }
-            if(type=='4') { icon='🚂'; speed=4000; }
+        buildNavPolylinesForLegs: (legs, append) => {
+            if(!App.map || !Array.isArray(legs) || !legs.length) return;
+            if(!append && Array.isArray(App.state.navPolylines) && App.state.navPolylines.length) {
+                try {
+                    App.state.navPolylines.forEach(p => {
+                        try { App.map.remove(p); } catch(e) {}
+                    });
+                } catch(e) {}
+                App.state.navPolylines = [];
+            }
+            if (!App.state.navPolylines) App.state.navPolylines = [];
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
+            const navLines = [];
+            const roadTasks = [];
+            const colorByMode = (m) => {
+                const v = String(m);
+                if(v === '2' || v === 'sea') return '#00ffff';
+                if(v === '3' || v === 'air') return '#ff66ff';
+                if(v === '4' || v === 'rail') return '#ffcc00';
+                return '#00ff99';
+            };
+            const createSimpleLine = (s, e, color, modeStr, baseRoute, leg, weight) => {
+                const pts = [s, e];
+                if(baseRoute) {
+                    baseRoute._navPath = pts;
+                    baseRoute._type = modeStr;
+                }
+                const navLine = new AMap.Polyline({
+                    path: pts,
+                    strokeColor: color,
+                    strokeWeight: typeof weight === 'number' ? weight : 4,
+                    strokeOpacity: 0.9,
+                    showDir: true,
+                    zIndex: 90
+                });
+                navLine._navPath = pts;
+                navLine._type = modeStr;
+                App.map.add(navLine);
+                leg._navLine = navLine;
+                navLines.push(navLine);
+            };
+            legs.forEach(leg => {
+                const fromId = leg.fromId;
+                const toId = leg.toId;
+                if(!fromId || !toId) return;
+                const startMarker = logic.findMarkerByName(fromId);
+                const endMarker = logic.findMarkerByName(toId);
+                if(!startMarker || !endMarker) return;
+                const s = startMarker.getPosition();
+                const e = endMarker.getPosition();
+                if(!s || !e || typeof s.getLng !== 'function' || typeof e.getLng !== 'function') return;
+                const mode = leg.mode;
+                const modeStr = typeof mode === 'number' ? String(mode) : String(mode || '');
+                const color = colorByMode(modeStr);
+                const isRoad = (modeStr === 'road' || modeStr === '1');
+                const conn = App.connections.find(c =>
+                    (c.from === fromId && c.to === toId) ||
+                    (c.from === toId && c.to === fromId)
+                );
+                const baseRoute = conn && conn.route ? conn.route : null;
+                if(isRoad) {
+                    const origin = encodeURIComponent(s.getLng() + ',' + s.getLat());
+                    const destination = encodeURIComponent(e.getLng() + ',' + e.getLat());
+                    const url = baseUrl + "/api/amap/driving?origin=" + origin + "&destination=" + destination;
+                    const task = fetch(url)
+                        .then(res => res.json())
+                        .then(data => {
+                            if(!data || data.status !== '1' || !data.route || !Array.isArray(data.route.paths) || !data.route.paths.length) {
+                                createSimpleLine(s, e, color, modeStr, baseRoute, leg, 5);
+                                return null;
+                            }
+                            const path0 = data.route.paths[0];
+                            const steps = Array.isArray(path0.steps) ? path0.steps : [];
+                            const pts = [];
+                            steps.forEach(step => {
+                                if(!step || !step.polyline) return;
+                                const segs = String(step.polyline).split(';');
+                                segs.forEach(seg => {
+                                    const parts = seg.split(',');
+                                    if(parts.length !== 2) return;
+                                    const lng = parseFloat(parts[0]);
+                                    const lat = parseFloat(parts[1]);
+                                    if(isNaN(lng) || isNaN(lat)) return;
+                                    pts.push(new AMap.LngLat(lng, lat));
+                                });
+                            });
+                            if(pts.length < 2) {
+                                createSimpleLine(s, e, color, modeStr, baseRoute, leg, 5);
+                                return null;
+                            }
+                            if(baseRoute) {
+                                baseRoute._navPath = pts;
+                                baseRoute._type = modeStr;
+                            }
+                            const navLine = new AMap.Polyline({
+                                path: pts,
+                                strokeColor: color,
+                                strokeWeight: 5,
+                                strokeOpacity: 0.9,
+                                showDir: true,
+                                zIndex: 90
+                            });
+                            App.map.add(navLine);
+                            leg._navLine = navLine;
+                            navLines.push(navLine);
+                            return null;
+                        })
+                        .catch(() => {
+                            createSimpleLine(s, e, color, modeStr, baseRoute, leg, 5);
+                            return null;
+                        });
+                    roadTasks.push(task);
+                } else {
+                    createSimpleLine(s, e, color, modeStr, baseRoute, leg, 4);
+                }
+            });
+            if(roadTasks.length) {
+                Promise.all(roadTasks).then(() => {
+                    App.state.navPolylines = navLines;
+                });
+            } else {
+                App.state.navPolylines = navLines;
+            }
+        },
 
-            const path = [];
-            for(let t=0; t<=1; t+=0.02) {
-                const x = (1-t)*(1-t)*p1.getLng() + 2*(1-t)*t*cp[0] + t*t*p2.getLng();
-                const y = (1-t)*(1-t)*p1.getLat() + 2*(1-t)*t*cp[1] + t*t*p2.getLat();
-                path.push([x,y]);
+        startFlowPolyline: (pathArr, type, onComplete) => {
+            if (!Array.isArray(pathArr) || pathArr.length === 0) return;
+            let icon = '🚢';
+            let speed = 500; // Slower speed for better visibility
+            let color = '#00ffff';
+            if(type==='1') { icon='🚚'; speed=200; color='#00ff99'; }
+            if(type==='2') { icon='🚢'; speed=500; color='#00ffff'; }
+            if(type==='3') { icon='✈️'; speed=800; color='#ff66ff'; }
+            if(type==='4') { icon='🚂'; speed=300; color='#ffcc00'; }
+            const html = `<div style="width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.9);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 8px ${color};z-index:999;">${icon}</div>`;
+            const marker = new AMap.Marker({
+                map: App.map, position: pathArr[0],
+                content: html,
+                offset: new AMap.Pixel(-11, -11),
+                zIndex: 999
+            });
+            marker.on('moveend', () => {
+                marker.setMap(null);
+                if(typeof onComplete === 'function') onComplete();
+            });
+            marker.moveAlong(pathArr, speed, k=>k, false);
+        },
+
+        startFlow: (p1, p2, cp, type, options) => {
+            if (!p1 || !p2 || !cp || 
+                isNaN(p1.getLng()) || isNaN(p1.getLat()) ||
+                isNaN(p2.getLng()) || isNaN(p2.getLat()) ||
+                isNaN(cp[0]) || isNaN(cp[1])) {
+                console.warn("Invalid route coordinates, skipping animation", {p1, p2, cp});
+                return;
             }
 
+            const cfg = options || {};
+            const loop = cfg.loop !== false;
+            const onComplete = cfg.onComplete;
+
+            let icon = '✈️';
+            let speed = 800; // Slower
+            let color = '#ff66ff';
+            if(type==='1') { icon='🚚'; speed=200; color='#00ff99'; }
+            if(type==='2') { icon='🚢'; speed=500; color='#00ffff'; }
+            if(type==='4') { icon='🚂'; speed=300; color='#ffcc00'; }
+
+            const path = [];
+            for(let t=0; t<=1; t+=0.01) { // More points for smoother animation
+                const x = (1-t)*(1-t)*p1.getLng() + 2*(1-t)*t*cp[0] + t*t*p2.getLng();
+                const y = (1-t)*(1-t)*p1.getLat() + 2*(1-t)*t*cp[1] + t*t*p2.getLat();
+                if(isNaN(x) || isNaN(y)) {
+                    console.warn("Invalid interpolated point", x, y);
+                    return;
+                }
+                path.push(new AMap.LngLat(x, y));
+            }
+
+            const html = `<div style="width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.9);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 8px ${color};z-index:999;">${icon}</div>`;
             const marker = new AMap.Marker({
                 map: App.map, position: path[0],
-                content: `<div style="font-size:16px; transform:rotate(45deg); filter:drop-shadow(0 0 5px cyan);">${icon}</div>`,
-                offset: new AMap.Pixel(-8, -8)
+                content: html,
+                offset: new AMap.Pixel(-11, -11),
+                zIndex: 999
             });
 
-            function loop() {
+            const moveOnce = () => {
+                if(!App.map || !marker.getMap()) return;
                 marker.stopMove();
                 marker.setPosition(path[0]);
                 marker.moveAlong(path, speed, k=>k, false);
+            };
+            marker.on('moveend', () => {
+                 if(loop) {
+                    if(App.map && marker.getMap()) setTimeout(moveOnce, 1000);
+                 } else {
+                    marker.setMap(null);
+                    if(typeof onComplete === 'function') onComplete();
+                 }
+            });
+            moveOnce();
+        },
+
+        attachRouteInteraction: (route) => {
+            if(!route || route._interactiveBound) return;
+            route._interactiveBound = true;
+            route.on('click', () => {
+                if(App.state.phase !== 1) return;
+                if(!confirm("是否删除该线路?")) return;
+                logic.removeConnectionByRoute(route);
+            });
+        },
+
+        setRouteActive: (route, active) => {
+            if(!route) return;
+            const baseColor = route._baseColor || '#00d2ff';
+            const baseWeight = route._baseWeight || 3;
+            if(active) {
+                route.setOptions({
+                    strokeColor: baseColor,
+                    strokeWeight: baseWeight + 2,
+                    strokeOpacity: 1,
+                    zIndex: 80
+                });
+                if(route.show) route.show();
+            } else {
+                route.setOptions({
+                    strokeColor: baseColor,
+                    strokeWeight: baseWeight,
+                    strokeOpacity: 0.8,
+                    zIndex: 50
+                });
             }
-            marker.on('moveend', () => setTimeout(loop, 1000));
-            loop();
+        },
+
+        highlightPlanRoutes: (planRoutes) => {
+            const set = new Set(planRoutes || []);
+            (App.routes || []).forEach(r => {
+                const isPlan = set.has(r);
+                visuals.setRouteActive(r, isPlan);
+                if(!isPlan && r.show) {
+                    r.show();
+                }
+            });
         }
     };
 
@@ -606,13 +2462,113 @@
             App.state.mode = m;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             if(m==='connect') document.getElementById('btn-connect').classList.add('active');
-            ui.showToast(m === 'connect' ? "已进入连线模式：请依次点击起点和终点" : `模式切换: ${m}`);
+            if(m==='addNode') document.getElementById('btn-add').classList.add('active');
+            let msg = `模式切换: ${m}`;
+            if(m==='connect') msg = "已进入连线模式：请依次点击起点和终点";
+            if(m==='addNode') msg = "已进入选点模式：请在地图上点击要创建节点的位置";
+            ui.showToast(msg);
+        },
+
+        setPhase: (phase) => {
+            App.state.phase = phase;
+            const p1 = document.getElementById('btn-phase-1');
+            const p2 = document.getElementById('btn-phase-2');
+            if(p1 && p2) {
+                p1.classList.toggle('active', phase === 1);
+                p2.classList.toggle('active', phase === 2);
+            }
+            const enablePhase2 = phase === 2;
+            document.querySelectorAll('.phase2-only').forEach(btn => {
+                btn.classList.toggle('disabled', !enablePhase2);
+            });
+            if(phase === 1) {
+                ui.showToast("阶段一：请专注搭建网络骨架（节点与连线）");
+                (App.routes || []).forEach(r => {
+                    if(r.show) r.show();
+                    visuals.setRouteActive(r, false);
+                });
+            } else {
+                ui.showToast("阶段二：已解锁 AI 规划与仿真工具");
+            }
+        },
+
+        setConnectMode: (mode) => {
+            App.state.connectMode = mode;
+            App.state.tempStart = null;
+            const fan = document.getElementById('btn-mode-fanout');
+            const chain = document.getElementById('btn-mode-chain');
+            if(fan && chain) {
+                fan.classList.toggle('active', mode === 'fanout');
+                chain.classList.toggle('active', mode === 'chain');
+            }
+            ui.showToast(mode === 'fanout' ? "起点固定模式：从同一节点发散连多条线" : "接力模式：终点自动成为下一个起点，已重置起点，请先点击新的起点");
+        },
+
+        setLineType: (t) => {
+            App.state.currentLineType = t;
+            ['1','2','3','4'].forEach(k => {
+                const el = document.getElementById('btn-type-' + k);
+                if(el) el.classList.toggle('active', k === t);
+            });
+            let text = "公路";
+            if(t==='2') text = "海运";
+            if(t==='3') text = "空运";
+            if(t==='4') text = "铁路";
+            ui.showToast("当前线路类型：" + text);
         },
         
         showToast: (msg) => {
             const t = document.getElementById('toast');
             t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
+            clearTimeout(App.state.toastTimer);
+            App.state.toastTimer = setTimeout(() => t.style.display = 'none', 3000);
+        },
+
+        initCloudStatus: () => {
+            const badge = document.getElementById('cloud-status-badge');
+            if (!badge) return;
+            ui.updateCloudStatusBadge();
+            if (App.state.cloudStatusTimer) {
+                clearInterval(App.state.cloudStatusTimer);
+            }
+            const fn = () => ui.checkCloudConnection();
+            App.state.cloudStatusTimer = setInterval(fn, 5000);
+            ui.checkCloudConnection();
+        },
+
+        updateCloudStatusBadge: () => {
+            const badge = document.getElementById('cloud-status-badge');
+            if (!badge) return;
+            const status = App.state.cloudStatus || 'checking';
+            if (status === 'connected') {
+                badge.textContent = '云端连接';
+                badge.style.color = 'var(--neon-green)';
+                badge.style.borderColor = 'var(--neon-green)';
+            } else if (status === 'disconnected') {
+                badge.textContent = '云端断开';
+                badge.style.color = 'var(--neon-pink)';
+                badge.style.borderColor = 'var(--neon-pink)';
+            } else {
+                badge.textContent = '云端检测中...';
+                badge.style.color = 'var(--neon-blue)';
+                badge.style.borderColor = 'var(--neon-blue)';
+            }
+        },
+
+        checkCloudConnection: () => {
+            const baseUrl = App.state.backendBaseUrl || 'http://121.41.69.91:3001';
+            const target = baseUrl.replace(/\/+$/, '') + '/api/health';
+            App.state.cloudStatus = 'checking';
+            ui.updateCloudStatusBadge();
+            fetch(target)
+                .then(res => {
+                    App.state.cloudStatus = res.ok ? 'connected' : 'disconnected';
+                    ui.updateCloudStatusBadge();
+                })
+                .catch(() => {
+                    App.state.cloudStatus = 'disconnected';
+                    ui.updateCloudStatusBadge();
+                });
         },
 
         openAddNodeModal: (fromMap) => {
@@ -624,8 +2580,11 @@
             const name = document.getElementById('node-name').value || "新节点";
             const region = document.getElementById('node-region').value;
             const level = document.getElementById('node-level').value;
+            const type = document.getElementById('node-type').value;
             
-            logic.addNode(name, App.state.tempCoords, parseInt(level), region);
+            const pos = App.state.tempCoords || App.map.getCenter();
+            logic.addNode(name, pos, parseInt(level), region, type);
+            ui.setMode('view');
             ui.closeModals();
         },
 
@@ -636,8 +2595,9 @@
             const isCross = fromR !== toR;
             App.state.pendingPlan.isCrossBorder = isCross;
 
+            const tariffCost = App.state.params.tariff.crossBorderCost;
             document.getElementById('plan-desc').innerHTML = `规划线路: <b>${start.getExtData().name}</b> → <b>${end.getExtData().name}</b><br>` + 
-                (isCross ? `<span style="color:#ff3366">⚠ 检测到跨境运输 (${fromR} -> ${toR}) 将产生 $500 关税</span>` : "国内/区域内运输");
+                (isCross ? `<span style="color:#ff3366">⚠ 检测到跨境运输 (${fromR} -> ${toR}) 预计关税约 $${tariffCost}</span>` : "国内/区域内运输");
             
             document.getElementById('modal-plan').style.display = 'flex';
         },
@@ -647,21 +2607,678 @@
             document.getElementById('node-name').value = "";
         },
 
-        updateStats: () => {
-            document.getElementById('kpi-nodes').innerText = App.nodes.length;
-            document.getElementById('kpi-routes').innerText = App.routes.length;
-            document.getElementById('kpi-cost').innerText = "$" + (App.state.stats.cost/1000).toFixed(1) + "M";
-            document.getElementById('kpi-co2').innerText = (App.state.stats.co2).toFixed(1);
-            document.getElementById('cp-total-cost').innerText = "$" + (App.state.stats.cost/1000).toFixed(1) + "M";
+        openEventConfigModal: () => {
+            const m = document.getElementById('modal-event-config');
+            if(!m) return;
+            document.getElementById('event-type').value = 'typhoon';
+            document.getElementById('event-radius').value = 2000;
+            document.getElementById('event-delay').value = 24;
+            document.getElementById('event-cost-factor').value = 1.2;
+            m.style.display = 'flex';
         },
 
-        toggleDashboard: () => {
-            document.getElementById('dashboard-panel').classList.toggle('hidden');
+        confirmEventConfig: () => {
+            const type = document.getElementById('event-type').value;
+            const radius = parseFloat(document.getElementById('event-radius').value) || 2000;
+            const delay = parseFloat(document.getElementById('event-delay').value) || 0;
+            const factor = parseFloat(document.getElementById('event-cost-factor').value) || 1;
+            App.state.pendingEventConfig = {
+                type,
+                radiusKm: radius,
+                delayHours: delay,
+                costFactor: factor
+            };
+            ui.closeModals();
+            ui.showToast("配置已保存，请在地图上点击放置事件中心");
+        },
+
+        openEventManager: () => {
+            const m = document.getElementById('modal-event-manager');
+            if(!m) return;
+            ui.renderEventList();
+            m.style.display = 'flex';
+        },
+
+        renderEventList: () => {
+            const container = document.getElementById('event-list-container');
+            if(!container) return;
+            const list = App.state.events || [];
+            if(!list.length) {
+                container.innerHTML = "<div style=\"color:#888;\">当前没有已配置的事件。</div>";
+                return;
+            }
+            const rows = list.map(ev => {
+                const status = ev.enabled === false ? '已禁用' : '启用中';
+                const statusColor = ev.enabled === false ? '#888' : '#00ff99';
+                const typeLabel = ev.type || 'event';
+                const radius = typeof ev.radiusKm === 'number' ? ev.radiusKm : 0;
+                const delay = typeof ev.delayHours === 'number' ? ev.delayHours : 0;
+                const factor = typeof ev.costFactor === 'number' ? ev.costFactor : 1;
+                return `<div style="border-bottom:1px solid #222; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="color:#fff;">类型: ${typeLabel}</div>
+                        <div style="color:#aaa; font-size:0.8rem;">半径: ${radius.toFixed(0)} km · 延时: ${delay.toFixed(1)} h · 成本系数: ${factor.toFixed(2)}</div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-cancel" style="padding:4px 8px; font-size:0.75rem; border-color:${statusColor}; color:${statusColor};" onclick="logic.toggleEventEnabled('${ev.id}')">${status}</button>
+                        <button class="btn-cancel" style="padding:4px 8px; font-size:0.75rem; border-color:#ff3366; color:#ff3366;" onclick="logic.removeEvent('${ev.id}')">删除</button>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = rows.join("");
+        },
+
+        openPlanObjectiveModal: () => {
+            if(!App.state.planStart || !App.state.planEnd) {
+                ui.showToast("请在节点上右键分别设置规划起点和终点");
+                return;
+            }
+            ui.openPlanModal(App.state.planStart, App.state.planEnd);
+        },
+
+        updateStats: () => {
+            const nodesEl = document.getElementById('kpi-nodes');
+            const routesEl = document.getElementById('kpi-routes');
+            const costEl = document.getElementById('kpi-cost');
+            const co2El = document.getElementById('kpi-co2');
+            const timeEl = document.getElementById('kpi-time');
+            const cpCostEl = document.getElementById('cp-total-cost');
+            const cpTimeEl = document.getElementById('cp-total-time');
+            const cpLegsEl = document.getElementById('cp-legs');
+            const cpCrossEl = document.getElementById('cp-cross-border');
+            const cpCo2El = document.getElementById('cp-total-co2');
+            const anlAvgDistEl = document.getElementById('anl-avg-leg-dist');
+            const anlAvgCostEl = document.getElementById('anl-avg-leg-cost');
+            const anlAvgTimeEl = document.getElementById('anl-avg-leg-time');
+            const anlModeRoadEl = document.getElementById('anl-mode-road');
+            const anlModeSeaEl = document.getElementById('anl-mode-sea');
+            const anlModeAirEl = document.getElementById('anl-mode-air');
+            const anlModeRailEl = document.getElementById('anl-mode-rail');
+            const nodeTopEl = document.getElementById('cp-node-top');
+            const regionBreakEl = document.getElementById('cp-region-breakdown');
+            const eventImpactEl = document.getElementById('cp-event-impact');
+            const alertsEl = document.getElementById('cp-alerts');
+
+            const costM = App.state.stats.cost/1000;
+            const hours = App.state.stats.time || 0;
+            let timeText = hours.toFixed(1) + "h";
+            if(hours >= 24) {
+                const days = Math.floor(hours / 24);
+                const h = Math.round(hours % 24);
+                timeText = days + "d " + h + "h";
+            }
+
+            if(nodesEl) nodesEl.innerText = App.nodes.length;
+            if(routesEl) routesEl.innerText = App.routes.length;
+            if(costEl) costEl.innerText = "$" + costM.toFixed(1) + "M";
+            if(co2El) co2El.innerText = (App.state.stats.co2).toFixed(1);
+            if(timeEl) timeEl.innerText = timeText;
+            if(cpCostEl) cpCostEl.innerText = "$" + costM.toFixed(1) + "M";
+            if(cpTimeEl) cpTimeEl.innerText = timeText;
+            const legs = App.state.stats.legs || App.connections.length || 0;
+            const cross = App.state.stats.crossBorderLegs || 0;
+            const ratio = legs > 0 ? Math.round((cross / legs) * 100) : 0;
+            if(cpLegsEl) cpLegsEl.innerText = String(legs);
+            if(cpCrossEl) cpCrossEl.innerText = ratio + "%";
+            if(cpCo2El) cpCo2El.innerText = (App.state.stats.co2 || 0).toFixed(1);
+
+            const cons = App.connections || [];
+            const legCount = cons.length || 0;
+            let sumDist = 0;
+            const modeCounts = { '1': 0, '2': 0, '3': 0, '4': 0 };
+            cons.forEach(c => {
+                sumDist += c.distKm || 0;
+                if(modeCounts.hasOwnProperty(c.type)) modeCounts[c.type] += 1;
+            });
+            const avgDist = legCount ? (sumDist / legCount) : 0;
+            const avgCostPerLeg = legCount ? (App.state.stats.cost / Math.max(legCount, 1)) : 0;
+            const avgTimePerLeg = legCount ? (App.state.stats.time / Math.max(legCount, 1)) : 0;
+            const toPct = (v) => legCount > 0 ? Math.round((v / legCount) * 100) : 0;
+            if(anlAvgDistEl) anlAvgDistEl.innerText = avgDist.toFixed(1) + " km";
+            if(anlAvgCostEl) anlAvgCostEl.innerText = "$" + (avgCostPerLeg / 1000).toFixed(2) + "M";
+            if(anlAvgTimeEl) {
+                let avgTimeText = avgTimePerLeg.toFixed(1) + "h";
+                if(avgTimePerLeg >= 24) {
+                    const d = Math.floor(avgTimePerLeg / 24);
+                    const h = Math.round(avgTimePerLeg % 24);
+                    avgTimeText = d + "d " + h + "h";
+                }
+                anlAvgTimeEl.innerText = avgTimeText;
+            }
+            if(anlModeRoadEl) anlModeRoadEl.innerText = toPct(modeCounts['1']) + "%";
+            if(anlModeSeaEl) anlModeSeaEl.innerText = toPct(modeCounts['2']) + "%";
+            if(anlModeAirEl) anlModeAirEl.innerText = toPct(modeCounts['3']) + "%";
+            if(anlModeRailEl) anlModeRailEl.innerText = toPct(modeCounts['4']) + "%";
+
+            const nodeIndex = {};
+            App.nodes.forEach(m => {
+                const ext = m.getExtData() || {};
+                if(ext.name) {
+                    nodeIndex[ext.name] = { marker: m, ext };
+                }
+            });
+
+            const nodeStats = {};
+            const ensureNode = (name) => {
+                if(!nodeStats[name]) {
+                    nodeStats[name] = { legs: 0, cost: 0, time: 0 };
+                }
+                return nodeStats[name];
+            };
+            cons.forEach(c => {
+                const fromName = c.from;
+                const toName = c.to;
+                const costVal = c.cost || 0;
+                const timeVal = c.hours || 0;
+                if(fromName) {
+                    const s = ensureNode(fromName);
+                    s.legs += 1;
+                    s.cost += costVal;
+                    s.time += timeVal;
+                }
+                if(toName) {
+                    const t = ensureNode(toName);
+                    t.legs += 1;
+                    t.cost += costVal;
+                    t.time += timeVal;
+                }
+            });
+
+            if(nodeTopEl) {
+                const entries = Object.keys(nodeStats).map(name => {
+                    const stat = nodeStats[name];
+                    const info = nodeIndex[name] || {};
+                    const ext = info.ext || {};
+                    const region = ext.region || "-";
+                    const levelRaw = typeof ext.level === "number" ? ext.level : ext.level;
+                    const level = levelRaw != null ? levelRaw : "-";
+                    const avgCost = stat.legs ? stat.cost / stat.legs : 0;
+                    const avgTime = stat.legs ? stat.time / stat.legs : 0;
+                    let avgTimeText = avgTime.toFixed(1) + "h";
+                    if(avgTime >= 24) {
+                        const d = Math.floor(avgTime / 24);
+                        const h = Math.round(avgTime % 24);
+                        avgTimeText = d + "d " + h + "h";
+                    }
+                    return {
+                        name,
+                        region,
+                        level,
+                        legs: stat.legs,
+                        avgCost,
+                        avgTimeText
+                    };
+                }).sort((a, b) => b.legs - a.legs).slice(0, 5);
+                if(!entries.length) {
+                    nodeTopEl.innerHTML = "<div>当前暂无可统计的线路，请先完成路径规划。</div>";
+                } else {
+                    const rows = entries.map(e => {
+                        const costMPerLeg = e.avgCost / 1000;
+                        return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(0,210,255,0.1);">
+                            <div>
+                                <div style="color:#fff;">${e.name}</div>
+                                <div style="color:#888; font-size:0.75rem;">区域 ${e.region} · Level ${e.level}</div>
+                            </div>
+                            <div style="text-align:right; font-size:0.75rem;">
+                                <div>段数 ${e.legs}</div>
+                                <div>平均成本 $${costMPerLeg.toFixed(2)}M</div>
+                                <div>平均时间 ${e.avgTimeText}</div>
+                            </div>
+                        </div>`;
+                    });
+                    nodeTopEl.innerHTML = rows.join("");
+                }
+            }
+
+            const regionStats = {};
+            const ensureRegion = (region) => {
+                const key = region || "-";
+                if(!regionStats[key]) {
+                    regionStats[key] = { legs: 0, cost: 0, time: 0, co2: 0 };
+                }
+                return regionStats[key];
+            };
+            cons.forEach(c => {
+                const fromInfo = nodeIndex[c.from] || null;
+                const toInfo = nodeIndex[c.to] || null;
+                const regionFrom = fromInfo && fromInfo.ext && fromInfo.ext.region ? fromInfo.ext.region : "-";
+                const regionTo = toInfo && toInfo.ext && toInfo.ext.region ? toInfo.ext.region : "-";
+                const costVal = c.cost || 0;
+                const timeVal = c.hours || 0;
+                const co2Val = c.co2 || 0;
+                const r1 = ensureRegion(regionFrom);
+                r1.legs += 1;
+                r1.cost += costVal;
+                r1.time += timeVal;
+                r1.co2 += co2Val;
+                const r2 = ensureRegion(regionTo);
+                r2.legs += 1;
+                r2.cost += costVal;
+                r2.time += timeVal;
+                r2.co2 += co2Val;
+            });
+            if(regionBreakEl) {
+                const regionEntries = Object.keys(regionStats).map(regionKey => {
+                    const s = regionStats[regionKey];
+                    const legsVal = s.legs || 0;
+                    const avgCost = legsVal ? s.cost / legsVal : 0;
+                    const avgTime = legsVal ? s.time / legsVal : 0;
+                    const avgCo2 = legsVal ? s.co2 / legsVal : 0;
+                    let avgTimeText = avgTime.toFixed(1) + "h";
+                    if(avgTime >= 24) {
+                        const d = Math.floor(avgTime / 24);
+                        const h = Math.round(avgTime % 24);
+                        avgTimeText = d + "d " + h + "h";
+                    }
+                    return {
+                        region: regionKey,
+                        legs: legsVal,
+                        totalCostM: s.cost / 1000,
+                        avgTimeText,
+                        avgCo2
+                    };
+                }).sort((a, b) => b.legs - a.legs).slice(0, 4);
+                if(!regionEntries.length) {
+                    regionBreakEl.innerHTML = "<div>尚未形成区域网络，建立连线后将展示区域统计。</div>";
+                } else {
+                    const rows = regionEntries.map(e => {
+                        return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(0,210,255,0.1);">
+                            <div>
+                                <div style="color:#fff;">区域 ${e.region}</div>
+                                <div style="color:#888; font-size:0.75rem;">段数 ${e.legs}</div>
+                            </div>
+                            <div style="text-align:right; font-size:0.75rem;">
+                                <div>总成本 $${e.totalCostM.toFixed(2)}M</div>
+                                <div>平均时间 ${e.avgTimeText}</div>
+                                <div>平均碳排 ${e.avgCo2.toFixed(2)}</div>
+                            </div>
+                        </div>`;
+                    });
+                    regionBreakEl.innerHTML = rows.join("");
+                }
+            }
+
+            const events = Array.isArray(App.state.events) ? App.state.events.filter(ev => ev && ev.enabled !== false) : [];
+            if(eventImpactEl) {
+                if(!events.length) {
+                    eventImpactEl.innerHTML = "<div>当前没有启用的事件，网络运行稳定。</div>";
+                } else {
+                    const typeCounts = {};
+                    let totalRadius = 0;
+                    let totalDelay = 0;
+                    events.forEach(ev => {
+                        const type = ev.type || "event";
+                        typeCounts[type] = (typeCounts[type] || 0) + 1;
+                        if(typeof ev.radiusKm === "number") totalRadius += ev.radiusKm;
+                        if(typeof ev.delayHours === "number") totalDelay += ev.delayHours;
+                    });
+                    const avgRadius = totalRadius / events.length;
+                    const avgDelay = totalDelay / events.length;
+                    const typeParts = Object.keys(typeCounts).map(k => k + ": " + typeCounts[k]).join(" · ");
+                    eventImpactEl.innerHTML =
+                        `<div style="padding:4px 0;">启用事件: <span style="color:var(--neon-blue)">${events.length}</span> 个</div>
+                        <div style="padding:4px 0;">平均影响半径: <span style="color:var(--neon-green)">${avgRadius.toFixed(0)}</span> km</div>
+                        <div style="padding:4px 0;">平均额外延时: <span style="color:var(--neon-pink)">${avgDelay.toFixed(1)}</span> h</div>
+                        <div style="padding:4px 0; font-size:0.8rem; color:#aaa;">类型分布: ${typeParts}</div>`;
+                }
+            }
+
+            if(alertsEl) {
+                const alerts = [];
+                if(legs > 0 && ratio >= 50) {
+                    alerts.push("跨境运输占比偏高，建议评估关税与地缘风险。");
+                }
+                if(App.state.stats.co2 > 1000) {
+                    alerts.push("碳排放累计值较高，可以尝试提高铁路和海运占比。");
+                }
+                const pctRoad = toPct(modeCounts['1']);
+                const pctSea = toPct(modeCounts['2']);
+                const pctAir = toPct(modeCounts['3']);
+                const pctRail = toPct(modeCounts['4']);
+                if(pctAir > 40) {
+                    alerts.push("空运占比较大，成本和碳排压力较高。");
+                }
+                if(pctSea > 60) {
+                    alerts.push("海运占比较高，注意天气与港口拥堵风险。");
+                }
+                if(pctRail < 10 && legs > 0) {
+                    alerts.push("铁路运力利用偏低，可考虑增加部分中欧班列等方案。");
+                }
+                if(events && events.length) {
+                    alerts.push("部分事件区域影响路径，请关注事件面板并适时重规划。");
+                }
+                if(!alerts.length) {
+                    alertsEl.innerHTML = "<div>当前未检测到明显风险，网络运行在安全区间。</div>";
+                } else {
+                    const html = alerts.map(msg => `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);">${msg}</div>`).join("");
+                    alertsEl.innerHTML = html;
+                }
+            }
         },
 
         toggleCockpit: () => {
             const cp = document.getElementById('cockpit-view');
-            cp.style.display = cp.style.display === 'flex' ? 'none' : 'flex';
+            const isOpening = cp.style.display !== 'flex';
+            cp.style.display = isOpening ? 'flex' : 'none';
+            
+            if(isOpening) {
+                // Start Real-time Simulation
+                if(App.state.simInterval) clearInterval(App.state.simInterval);
+                App.state.simInterval = setInterval(() => {
+                    // Fluctuate stats slightly
+                    const factor = 1 + (Math.random() * 0.02 - 0.01);
+                    App.state.stats.cost *= factor;
+                    ui.updateStats();
+                    
+                    // Animate bars
+                    document.querySelectorAll('.bar').forEach(bar => {
+                         if(Math.random() > 0.7) bar.style.height = (20 + Math.random() * 80) + '%';
+                    });
+                }, 2000);
+
+                // Animate Charts
+                document.querySelectorAll('.bar').forEach(bar => {
+                    // Random height animation
+                    const h = 20 + Math.random() * 80;
+                    bar.style.height = h + '%';
+                });
+                
+                // Show AI Suggestion Toast
+                setTimeout(() => {
+                    const suggestions = [
+                        "建议: 增加上海港至洛杉矶的空运频次以缓解海运压力。",
+                        "优化: 欧洲区铁路运输成本上升，建议切换至海运。",
+                        "警告: 东南亚区域台风季临近，请提前规划备选航线。",
+                        "智能分析: 发现新的低成本航线组合，建议重新规划。"
+                    ];
+                    ui.showToast("AI 助手: " + suggestions[Math.floor(Math.random()*suggestions.length)]);
+                }, 1500);
+
+                ui.refreshSchemeListForCockpit();
+            } else {
+                if(App.state.simInterval) clearInterval(App.state.simInterval);
+            }
+        },
+
+        refreshSchemeListForCockpit: () => {
+            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            const selA = document.getElementById('cp-sel-scheme-a');
+            const selB = document.getElementById('cp-sel-scheme-b');
+            if(!selA || !selB) return;
+            fetch(baseUrl + "/api/network/schemes")
+                .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+                .then(({ ok, status, data }) => {
+                    if(!ok) return;
+                    const list = data && Array.isArray(data.schemes) ? data.schemes : [];
+                    App.state.schemeCompareList = list;
+                    selA.innerHTML = "";
+                    selB.innerHTML = "";
+                    list.forEach((s, idx) => {
+                        const optA = document.createElement('option');
+                        optA.value = s.name;
+                        optA.textContent = s.name;
+                        selA.appendChild(optA);
+                        const optB = document.createElement('option');
+                        optB.value = s.name;
+                        optB.textContent = s.name;
+                        selB.appendChild(optB);
+                        if(idx === 0) selA.value = s.name;
+                        if(idx === 1) selB.value = s.name;
+                    });
+                    ui.updateSchemeComparison();
+                })
+                .catch(() => {});
+        },
+
+        updateSchemeComparison: () => {
+            const list = App.state.schemeCompareList || [];
+            const selA = document.getElementById('cp-sel-scheme-a');
+            const selB = document.getElementById('cp-sel-scheme-b');
+            const container = document.getElementById('cp-scheme-compare');
+            if(!selA || !selB || !container) return;
+            const nameA = selA.value;
+            const nameB = selB.value;
+            const findByName = (name) => list.find(s => s.name === name) || null;
+            const a = findByName(nameA);
+            const b = findByName(nameB);
+            if(!a || !b) {
+                container.innerHTML = "<div>请至少保存两套方案以进行对比。</div>";
+                return;
+            }
+            const formatStats = (s) => {
+                if(!s || !s.stats) return { cost:"-", time:"-", co2:"-" };
+                const costM = (s.stats.totalCost || 0) / 1000;
+                const hours = s.stats.totalTimeHours || 0;
+                let timeText = hours.toFixed(1) + "h";
+                if(hours >= 24) {
+                    const days = Math.floor(hours / 24);
+                    const h = Math.round(hours % 24);
+                    timeText = days + "d " + h + "h";
+                }
+                const co2 = typeof s.stats.totalCo2 === "number" ? s.stats.totalCo2.toFixed(1) : "-";
+                return { cost: "$" + costM.toFixed(1) + "M", time: timeText, co2 };
+            };
+            const sa = formatStats(a);
+            const sb = formatStats(b);
+            container.innerHTML =
+                `<table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                        <th style="text-align:left; padding:4px;"></th>
+                        <th style="text-align:left; padding:4px; color:#00d2ff;">${a.name}</th>
+                        <th style="text-align:left; padding:4px; color:#ff3366;">${b.name}</th>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px; color:#aaa;">节点数量</td>
+                        <td style="padding:4px;">${a.nodesCount || 0}</td>
+                        <td style="padding:4px;">${b.nodesCount || 0}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px; color:#aaa;">连线数量</td>
+                        <td style="padding:4px;">${a.connectionsCount || 0}</td>
+                        <td style="padding:4px;">${b.connectionsCount || 0}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px; color:#aaa;">总成本</td>
+                        <td style="padding:4px;">${sa.cost}</td>
+                        <td style="padding:4px;">${sb.cost}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px; color:#aaa;">运输时间</td>
+                        <td style="padding:4px;">${sa.time}</td>
+                        <td style="padding:4px;">${sb.time}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px; color:#aaa;">碳排放量</td>
+                        <td style="padding:4px;">${sa.co2}</td>
+                        <td style="padding:4px;">${sb.co2}</td>
+                    </tr>
+                </table>`;
+        },
+
+        toggleParamPanel: () => {
+            const panel = document.getElementById('param-panel');
+            const isOpen = panel.style.display === 'block';
+            panel.style.display = isOpen ? 'none' : 'block';
+            if(!isOpen) {
+                ui.syncParamPanel();
+                ui.showToast("参数面板已打开");
+            }
+        },
+
+        syncParamPanel: () => {
+            const p = App.state.params;
+            const d = DefaultParams;
+            const setPair = (name, value, def, digits = 1) => {
+                const slider = document.getElementById('param-' + name);
+                const valEl = document.getElementById('val-' + name);
+                const defEl = document.getElementById('def-' + name.replace('-', '-'));
+                if(slider) slider.value = value;
+                if(valEl) valEl.innerText = value.toFixed(digits);
+                if(defEl) defEl.innerText = def.toFixed(digits);
+            };
+
+            setPair('road-speed', p.transport.road.speed, d.transport.road.speed, 0);
+            setPair('road-cost', p.transport.road.cost, d.transport.road.cost, 2);
+            setPair('road-co2', p.transport.road.co2, d.transport.road.co2, 3);
+
+            setPair('rail-speed', p.transport.rail.speed, d.transport.rail.speed, 0);
+            setPair('rail-cost', p.transport.rail.cost, d.transport.rail.cost, 2);
+            setPair('rail-co2', p.transport.rail.co2, d.transport.rail.co2, 3);
+
+            setPair('sea-speed', p.transport.sea.speed, d.transport.sea.speed, 0);
+            setPair('sea-cost', p.transport.sea.cost, d.transport.sea.cost, 2);
+            setPair('sea-co2', p.transport.sea.co2, d.transport.sea.co2, 3);
+
+            setPair('air-speed', p.transport.air.speed, d.transport.air.speed, 0);
+            setPair('air-cost', p.transport.air.cost, d.transport.air.cost, 2);
+            setPair('air-co2', p.transport.air.co2, d.transport.air.co2, 3);
+
+            setPair('tariff-cost', p.tariff.crossBorderCost, d.tariff.crossBorderCost, 0);
+            setPair('tariff-delay', p.tariff.crossBorderDelayH, d.tariff.crossBorderDelayH, 0);
+            const pEvents = p.events || { tariffSpikeFactor: 1.2 };
+            const dEvents = d.events || pEvents;
+            setPair('event-tariff', pEvents.tariffSpikeFactor, dEvents.tariffSpikeFactor, 1);
+
+            const pWeights = p.weights || { balancedCostWeight: 0.5, balancedTimeWeight: 0.3, balancedCo2Weight: 0.2 };
+            const dWeights = d.weights || pWeights;
+            setPair('weight-cost', pWeights.balancedCostWeight, dWeights.balancedCostWeight, 2);
+            setPair('weight-time', pWeights.balancedTimeWeight, dWeights.balancedTimeWeight, 2);
+            setPair('weight-co2', pWeights.balancedCo2Weight, dWeights.balancedCo2Weight, 2);
+        },
+
+        updateParamSlider: (name, el) => {
+            const v = parseFloat(el.value);
+            const p = App.state.params;
+            const valEl = document.getElementById('val-' + name);
+            const digits = name.indexOf('speed') !== -1 || name.indexOf('delay') !== -1 || name.indexOf('cost') !== -1 ? 0 : 3;
+            if(name === 'road-speed') p.transport.road.speed = v;
+            if(name === 'road-cost') p.transport.road.cost = v;
+            if(name === 'road-co2') p.transport.road.co2 = v;
+
+            if(name === 'rail-speed') p.transport.rail.speed = v;
+            if(name === 'rail-cost') p.transport.rail.cost = v;
+            if(name === 'rail-co2') p.transport.rail.co2 = v;
+
+            if(name === 'sea-speed') p.transport.sea.speed = v;
+            if(name === 'sea-cost') p.transport.sea.cost = v;
+            if(name === 'sea-co2') p.transport.sea.co2 = v;
+
+            if(name === 'air-speed') p.transport.air.speed = v;
+            if(name === 'air-cost') p.transport.air.cost = v;
+            if(name === 'air-co2') p.transport.air.co2 = v;
+
+            if(name === 'tariff-cost') p.tariff.crossBorderCost = v;
+            if(name === 'tariff-delay') p.tariff.crossBorderDelayH = v;
+            if(name === 'event-tariff') {
+                if(!p.events) p.events = { tariffSpikeFactor: 1.2 };
+                p.events.tariffSpikeFactor = v;
+            }
+
+            if(name === 'weight-cost') {
+                if(!p.weights) p.weights = { balancedCostWeight: 0.5, balancedTimeWeight: 0.3, balancedCo2Weight: 0.2 };
+                p.weights.balancedCostWeight = v;
+            }
+            if(name === 'weight-time') {
+                if(!p.weights) p.weights = { balancedCostWeight: 0.5, balancedTimeWeight: 0.3, balancedCo2Weight: 0.2 };
+                p.weights.balancedTimeWeight = v;
+            }
+            if(name === 'weight-co2') {
+                if(!p.weights) p.weights = { balancedCostWeight: 0.5, balancedTimeWeight: 0.3, balancedCo2Weight: 0.2 };
+                p.weights.balancedCo2Weight = v;
+            }
+
+            const outDigits = name.startsWith('weight-') ? 2 : (digits === 0 ? 0 : digits);
+            if(valEl) valEl.innerText = v.toFixed(outDigits);
+            ui.updateStats();
+            logic.pushParamsToBackend();
+        },
+
+        resetSingleParam: (name) => {
+            const p = App.state.params;
+            const d = DefaultParams;
+            if(name === 'road-speed') p.transport.road.speed = d.transport.road.speed;
+            if(name === 'road-cost') p.transport.road.cost = d.transport.road.cost;
+            if(name === 'road-co2') p.transport.road.co2 = d.transport.road.co2;
+
+            if(name === 'rail-speed') p.transport.rail.speed = d.transport.rail.speed;
+            if(name === 'rail-cost') p.transport.rail.cost = d.transport.rail.cost;
+            if(name === 'rail-co2') p.transport.rail.co2 = d.transport.rail.co2;
+
+            if(name === 'sea-speed') p.transport.sea.speed = d.transport.sea.speed;
+            if(name === 'sea-cost') p.transport.sea.cost = d.transport.sea.cost;
+            if(name === 'sea-co2') p.transport.sea.co2 = d.transport.sea.co2;
+
+            if(name === 'air-speed') p.transport.air.speed = d.transport.air.speed;
+            if(name === 'air-cost') p.transport.air.cost = d.transport.air.cost;
+            if(name === 'air-co2') p.transport.air.co2 = d.transport.air.co2;
+
+            if(name === 'tariff-cost') p.tariff.crossBorderCost = d.tariff.crossBorderCost;
+            if(name === 'tariff-delay') p.tariff.crossBorderDelayH = d.tariff.crossBorderDelayH;
+            if(name === 'event-tariff') p.events.tariffSpikeFactor = d.events.tariffSpikeFactor;
+
+            if(name === 'weight-cost') {
+                if(!p.weights) p.weights = {};
+                p.weights.balancedCostWeight = (d.weights || DefaultParams.weights).balancedCostWeight;
+            }
+            if(name === 'weight-time') {
+                if(!p.weights) p.weights = {};
+                p.weights.balancedTimeWeight = (d.weights || DefaultParams.weights).balancedTimeWeight;
+            }
+            if(name === 'weight-co2') {
+                if(!p.weights) p.weights = {};
+                p.weights.balancedCo2Weight = (d.weights || DefaultParams.weights).balancedCo2Weight;
+            }
+
+            ui.syncParamPanel();
+            ui.showToast("参数已恢复默认值");
+            logic.pushParamsToBackend();
+        },
+
+        resetAllParams: () => {
+            App.state.params = JSON.parse(JSON.stringify(DefaultParams));
+            if(!App.state.params.events) {
+                App.state.params.events = { tariffSpikeFactor: 1.2 };
+            }
+            ui.syncParamPanel();
+            ui.updateStats();
+            ui.showToast("全部参数已恢复默认");
+            logic.pushParamsToBackend();
+        },
+        rollbackParams: () => {
+            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            fetch(baseUrl + "/api/config/rollback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+                .then(data => {
+                    if(!data || !data.currentConfig) { ui.showToast("回滚失败"); return; }
+                    const cfg = data.currentConfig;
+                    const toParams = (cfg) => ({
+                        transport: {
+                        road: { speed: cfg.transport.road.speedKmH, cost: cfg.transport.road.costPerKm, co2: cfg.transport.road.co2PerKm },
+                        rail: { speed: cfg.transport.rail.speedKmH, cost: cfg.transport.rail.costPerKm, co2: cfg.transport.rail.co2PerKm },
+                            sea: { speed: cfg.transport.sea.speedKmH, cost: cfg.transport.sea.costPerKm, co2: cfg.transport.sea.co2PerKm },
+                            air: { speed: cfg.transport.air.speedKmH, cost: cfg.transport.air.costPerKm, co2: cfg.transport.air.co2PerKm }
+                        },
+                        tariff: {
+                            crossBorderCost: cfg.tariff.crossBorderCost,
+                            crossBorderDelayH: cfg.tariff.crossBorderDelayHours
+                        },
+                        events: App.state.params.events || { tariffSpikeFactor: 1.2 },
+                        weights: cfg.weights || DefaultParams.weights || {
+                            balancedCostWeight: 0.5,
+                            balancedTimeWeight: 0.3,
+                            balancedCo2Weight: 0.2
+                        }
+                    });
+                    App.state.params = toParams(cfg);
+                ui.syncParamPanel();
+                ui.updateStats();
+                ui.showToast("已回滚到上一次参数配置");
+            })
+            .catch(() => ui.showToast("回滚请求失败"));
         }
     };
     
@@ -669,15 +3286,150 @@
     const io = {
         exportReport: () => {
             if(App.connections.length === 0) { ui.showToast("暂无数据可导出"); return; }
-            const win = window.open('', '_blank');
-            const rows = App.connections.map(c => `<tr><td>${c.from}</td><td>${c.to}</td><td>${c.type}</td><td>$${c.cost.toFixed(0)}</td></tr>`).join('');
-            win.document.write(`<html><head><title>物流分析报告</title><style>body{font-family:'微软雅黑',sans-serif; padding:20px;} table{width:100%; border-collapse:collapse;} td,th{border:1px solid #ddd; padding:8px; text-align:left;} th{background-color:#f2f2f2;}</style></head><body><h1>全球物流网络分析报告</h1><table><tr><th>起点 (From)</th><th>终点 (To)</th><th>类型 (Type)</th><th>预估成本 (Cost)</th></tr>${rows}</table></body></html>`);
-            win.document.close();
+            
+            // CSV Generation
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM
+            csvContent += "From,To,Type,Cost (USD),CO2 (Ton)\n";
+            App.connections.forEach(c => {
+                csvContent += `${c.from},${c.to},${c.type},${c.cost.toFixed(2)},${c.co2.toFixed(2)}\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `LogiGlobe_Report_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            ui.showToast("报告已下载 (CSV)");
+        },
+
+        saveScheme: () => {
+            if(!App.map) { ui.showToast("地图尚未初始化"); return; }
+            const name = prompt("请输入要保存的方案名称");
+            if(!name) { ui.showToast("已取消保存"); return; }
+            const nodes = App.nodes.filter(marker => {
+                const ext = marker.getExtData() || {};
+                return !ext.isVirtual;
+            }).map(marker => {
+                const pos = marker.getPosition();
+                const ext = marker.getExtData() || {};
+                return {
+                    name: ext.name,
+                    lng: pos.getLng(),
+                    lat: pos.getLat(),
+                    level: ext.level,
+                    region: ext.region,
+                    type: ext.type || 'port'
+                };
+            });
+            const connections = App.connections.map(c => ({
+                from: c.from,
+                to: c.to,
+                type: c.type
+            }));
+            const planStartName = App.state.planStart ? App.state.planStart.getExtData().name : null;
+            const planEndName = App.state.planEnd ? App.state.planEnd.getExtData().name : null;
+            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            const body = {
+                name,
+                nodes,
+                connections,
+                params: App.state.params,
+                planStartName,
+                planEndName,
+                stats: {
+                    totalCost: App.state.stats.cost,
+                    totalCo2: App.state.stats.co2,
+                    totalTimeHours: App.state.stats.time,
+                    totalDistanceKm: App.state.stats.dist
+                }
+            };
+            fetch(baseUrl + "/api/network/schemes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            })
+            .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+            .then(({ ok, status, data }) => {
+                if(!ok) {
+                    ui.showToast("方案保存失败, 状态码 " + status);
+                    return;
+                }
+                ui.showToast("方案已保存: " + name);
+            })
+            .catch(() => {
+                ui.showToast("无法连接后端保存方案");
+            });
+        },
+
+        loadScheme: () => {
+            const baseUrl = App.state.backendBaseUrl || 'http://localhost:3001';
+            fetch(baseUrl + "/api/network/schemes")
+                .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+                .then(({ ok, status, data }) => {
+                    if(!ok) {
+                        ui.showToast("获取方案列表失败, 状态码 " + status);
+                        return;
+                    }
+                    const list = data && Array.isArray(data.schemes) ? data.schemes : [];
+                    if(!list.length) {
+                        ui.showToast("暂无已保存方案");
+                        return;
+                    }
+                    const names = list.map(s => s.name).join(", ");
+                    const name = prompt("请输入要加载的方案名称:\n" + names);
+                    if(!name) {
+                        ui.showToast("已取消加载");
+                        return;
+                    }
+                    fetch(baseUrl + "/api/network/schemes/" + encodeURIComponent(name))
+                        .then(res2 => res2.json().then(data2 => ({ ok: res2.ok, status: res2.status, data: data2 })))
+                        .then(({ ok: ok2, status: status2, data: scheme }) => {
+                            if(!ok2) {
+                                ui.showToast("加载方案失败, 状态码 " + status2);
+                                return;
+                            }
+                            if(!scheme || !Array.isArray(scheme.nodes)) {
+                                ui.showToast("方案数据不完整");
+                                return;
+                            }
+                            logic.clearAll();
+                            scheme.nodes.forEach(n => {
+                                const pos = new AMap.LngLat(n.lng, n.lat);
+                                logic.addNode(n.name, pos, n.level, n.region, n.type || 'port');
+                            });
+                            const findMarker = (nodeName) => App.nodes.find(m => (m.getExtData() || {}).name === nodeName);
+                            (scheme.connections || []).forEach(c => {
+                                const s = findMarker(c.from);
+                                const e = findMarker(c.to);
+                                if(s && e) {
+                                    App.state.currentLineType = c.type;
+                                    logic.createConnection(s, e);
+                                }
+                            });
+                            if(scheme.params) {
+                                App.state.params = scheme.params;
+                                ui.syncParamPanel();
+                            }
+                            App.state.planStart = scheme.planStartName ? findMarker(scheme.planStartName) : null;
+                            App.state.planEnd = scheme.planEndName ? findMarker(scheme.planEndName) : null;
+                            ui.updateStats();
+                            ui.showToast("方案已加载: " + name);
+                        })
+                        .catch(() => {
+                            ui.showToast("无法连接后端加载方案");
+                        });
+                })
+                .catch(() => {
+                    ui.showToast("无法连接后端获取方案列表");
+                });
         }
     };
 
     // Run
     initSystem();
+    ui.setPhase(1);
 
 </script>
 </body>
