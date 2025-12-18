@@ -5,7 +5,7 @@ const path = require("path");
 const https = require("https");
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = 3001;
 const CONFIG_FILE = path.join(__dirname, "config.json");
 const SCHEMES_FILE = path.join(__dirname, "schemes.json");
 // Default key provided by user, can be overridden by env var
@@ -631,6 +631,425 @@ async function enrichEdgesWithAmap(nodes, edges) {
   return Promise.all(tasks);
 }
 
+async function planScenario(request = {}) {
+  const baseEvents = Array.isArray(request.events) ? request.events : [];
+  const baseNodesInput = Array.isArray(request.nodes) ? request.nodes : null;
+  const baseEdgesInput = Array.isArray(request.edges) ? request.edges : null;
+
+  const tasks = normalizeBatchRequest(request);
+  if (tasks.length === 0) return [];
+
+  const planned = await Promise.all(
+    tasks.map((t) => planOneTask(t, baseNodesInput, baseEdgesInput, baseEvents))
+  );
+  return planned;
+
+  function normalizeBatchRequest(req) {
+    const list = Array.isArray(req.tasks) ? req.tasks.filter(Boolean) : null;
+    if (list && list.length > 0) {
+      return list.map((t, idx) => ({
+        taskId:
+          typeof t.taskId === "string" && t.taskId
+            ? t.taskId
+            : `task-${idx + 1}`,
+        originId: t.originId,
+        destinationId: t.destinationId,
+        objectiveRaw: t.objective
+      }));
+    }
+    return [
+      {
+        taskId:
+          typeof req.taskId === "string" && req.taskId ? req.taskId : "task-1",
+        originId: req.originId,
+        destinationId: req.destinationId,
+        objectiveRaw: req.objective
+      }
+    ];
+  }
+
+  function normalizeObjectiveToGraph(obj) {
+    if (!obj) return "fast";
+    const v = String(obj).toLowerCase();
+    if (v === "min_time") return "fast";
+    if (v === "min_cost") return "cheap";
+    if (v === "min_co2") return "green";
+    if (v === "fast" || v === "cheap" || v === "green" || v === "balanced")
+      return v;
+    return "fast";
+  }
+
+  function normalizeObjectiveToOutput(obj) {
+    if (!obj) return "min_time";
+    const v = String(obj).toLowerCase();
+    if (v === "min_time" || v === "min_cost" || v === "min_co2") return v;
+    if (v === "fast") return "min_time";
+    if (v === "cheap") return "min_cost";
+    if (v === "green") return "min_co2";
+    return "min_time";
+  }
+
+  function decideModeAttempts(objectiveOut) {
+    if (objectiveOut === "min_time") {
+      return [["road", "air"]];
+    }
+    if (objectiveOut === "min_cost") {
+      return [
+        ["road", "sea"],
+        ["road", "sea", "rail"],
+        ["road", "sea", "rail", "air"]
+      ];
+    }
+    if (objectiveOut === "min_co2") {
+      return [["road", "rail", "sea"]];
+    }
+    return [["road", "rail", "sea", "air"]];
+  }
+
+  async function planOneTask(task, baseNodes, baseEdges, events) {
+    const objectiveOut = normalizeObjectiveToOutput(task.objectiveRaw);
+    const objectiveGraph = normalizeObjectiveToGraph(task.objectiveRaw);
+
+    const originId = task.originId;
+    const destinationId = task.destinationId;
+    if (!originId || !destinationId) {
+      return { taskId: task.taskId, objective: objectiveOut, solution: null };
+    }
+
+    const modeAttempts = decideModeAttempts(objectiveOut);
+    for (const allowedModes of modeAttempts) {
+      const base = !baseNodes || !baseEdges ? buildDefaultNetwork() : null;
+      const initialNodes = cloneArray(baseNodes || base.nodes);
+      const initialEdges = cloneArray(baseEdges || base.edges);
+
+      const normalized = normalizeNetwork(initialNodes, initialEdges);
+      const nodes = normalized.nodes;
+      const edges = normalized.edges;
+
+      const nodeMap = buildNodeMap(nodes);
+      const originNode = nodeMap[originId];
+      const destinationNode = nodeMap[destinationId];
+      if (!originNode || !destinationNode) {
+        return { taskId: task.taskId, objective: objectiveOut, solution: null };
+      }
+
+      const ensured = ensureFacilitiesForModes(
+        task.taskId,
+        nodes,
+        edges,
+        originNode,
+        destinationNode,
+        allowedModes
+      );
+
+      const constrainedEdges = filterEdgesByConstraintsAndModes(
+        ensured.nodes,
+        ensured.edges,
+        allowedModes
+      );
+
+      const graph = buildGraph(
+        ensured.nodes,
+        constrainedEdges,
+        currentConfig,
+        objectiveGraph,
+        events
+      );
+
+      const path = dijkstra(graph, originId, destinationId);
+      if (!path || !Array.isArray(path) || path.length === 0) continue;
+
+      const legs = path.map((step) => ({
+        fromId: step.from,
+        toId: step.edge.to,
+        mode: step.edge.mode,
+        distanceKm: step.edge.distanceKm,
+        timeHours: step.edge.timeHours,
+        cost: step.edge.cost,
+        co2: step.edge.co2,
+        affectedEvents: step.edge.affectedEvents || []
+      }));
+
+      const usedIds = new Set();
+      legs.forEach((l) => {
+        usedIds.add(l.fromId);
+        usedIds.add(l.toId);
+      });
+      const ephemeralNodes = (ensured.ephemeralNodes || []).filter(
+        (n) => n && n.id && usedIds.has(n.id)
+      );
+
+      const renderHints = buildRenderHints(legs, graph.nodeMap);
+      return {
+        taskId: task.taskId,
+        objective: objectiveOut,
+        solution: {
+          legs,
+          ephemeralNodes,
+          renderHints
+        }
+      };
+    }
+
+    return { taskId: task.taskId, objective: objectiveOut, solution: null };
+  }
+
+  function cloneArray(arr) {
+    if (!Array.isArray(arr)) return [];
+    return JSON.parse(JSON.stringify(arr));
+  }
+
+  function normalizeNetwork(nodes, edges) {
+    const normalizedNodes = [];
+    const seenNodeIds = new Set();
+    (nodes || []).forEach((n) => {
+      if (!n || typeof n !== "object") return;
+      if (typeof n.id !== "string" || !n.id) return;
+      if (seenNodeIds.has(n.id)) return;
+      if (!isFiniteNumber(n.lng) || !isFiniteNumber(n.lat)) return;
+      seenNodeIds.add(n.id);
+      normalizedNodes.push({
+        ...n,
+        lng: Number(n.lng),
+        lat: Number(n.lat),
+        type: normalizeNodeType(n.type)
+      });
+    });
+
+    const nodeMap = buildNodeMap(normalizedNodes);
+    const normalizedEdges = [];
+    const seenEdgeKeys = new Set();
+    (edges || []).forEach((e) => {
+      if (!e || typeof e !== "object") return;
+      if (typeof e.from !== "string" || typeof e.to !== "string") return;
+      if (!nodeMap[e.from] || !nodeMap[e.to]) return;
+      const mode = normalizeMode(e.mode);
+      const key = `${e.from}|${e.to}|${mode}`;
+      if (seenEdgeKeys.has(key)) return;
+      seenEdgeKeys.add(key);
+      normalizedEdges.push({
+        ...e,
+        from: e.from,
+        to: e.to,
+        mode
+      });
+    });
+
+    return { nodes: normalizedNodes, edges: normalizedEdges };
+  }
+
+  function isFiniteNumber(v) {
+    if (v === null || v === undefined) return false;
+    if (typeof v === "string" && !v.trim()) return false;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n);
+  }
+
+  function buildNodeMap(nodes) {
+    const nodeMap = {};
+    (nodes || []).forEach((n) => {
+      if (n && typeof n.id === "string") nodeMap[n.id] = n;
+    });
+    return nodeMap;
+  }
+
+  function ensureFacilitiesForModes(
+    taskId,
+    nodes,
+    edges,
+    originNode,
+    destinationNode,
+    allowedModes
+  ) {
+    const nodeMap = buildNodeMap(nodes);
+    const ephemeralNodes = [];
+
+    const requiredFacilityTypes = [];
+    (allowedModes || []).forEach((m) => {
+      const mode = normalizeMode(m);
+      if (mode === "air") requiredFacilityTypes.push("airport");
+      if (mode === "sea") requiredFacilityTypes.push("port");
+      if (mode === "rail") requiredFacilityTypes.push("rail");
+    });
+
+    const uniqueFacilityTypes = Array.from(new Set(requiredFacilityTypes));
+    const facilityIndex = buildFacilityIndex(nodes);
+
+    const ensureAccessForFacilityType = (facilityType) => {
+      const originFacilityId = selectFacilityId(
+        taskId,
+        nodeMap,
+        facilityIndex,
+        originNode,
+        facilityType,
+        "origin"
+      );
+      const destFacilityId = selectFacilityId(
+        taskId,
+        nodeMap,
+        facilityIndex,
+        destinationNode,
+        facilityType,
+        "destination"
+      );
+
+      if (originFacilityId && originFacilityId !== originNode.id) {
+        upsertEdge(edges, originNode.id, originFacilityId, "road");
+        upsertEdge(edges, originFacilityId, originNode.id, "road");
+      }
+      if (destFacilityId && destFacilityId !== destinationNode.id) {
+        upsertEdge(edges, destinationNode.id, destFacilityId, "road");
+        upsertEdge(edges, destFacilityId, destinationNode.id, "road");
+      }
+    };
+
+    uniqueFacilityTypes.forEach((facilityType) => {
+      const before = nodes.length;
+      ensureAccessForFacilityType(facilityType);
+      for (let i = before; i < nodes.length; i++) {
+        const n = nodes[i];
+        if (n && n.ephemeral) ephemeralNodes.push(n);
+      }
+    });
+
+    return { nodes, edges, ephemeralNodes };
+
+    function selectFacilityId(
+      taskIdInner,
+      nodeMapInner,
+      index,
+      endpointNode,
+      facilityType,
+      role
+    ) {
+      const endpointType = normalizeNodeType(endpointNode.type);
+      if (endpointType === facilityType) return endpointNode.id;
+
+      const candidates = index[facilityType] || [];
+      if (candidates.length > 0) {
+        return findNearestNodeId(endpointNode, candidates);
+      }
+
+      const eid = makeEphemeralFacilityId(taskIdInner, endpointNode.id, facilityType, role);
+      if (nodeMapInner[eid]) return eid;
+
+      const created = {
+        id: eid,
+        name: endpointNode.name || "",
+        lng: endpointNode.lng,
+        lat: endpointNode.lat,
+        region: endpointNode.region,
+        type: facilityType,
+        ephemeral: true
+      };
+      nodes.push(created);
+      nodeMapInner[eid] = created;
+      return eid;
+    }
+  }
+
+  function buildFacilityIndex(nodes) {
+    const index = { airport: [], port: [], rail: [] };
+    (nodes || []).forEach((n) => {
+      if (!n) return;
+      const t = normalizeNodeType(n.type);
+      if (t === "airport") index.airport.push(n);
+      if (t === "port") index.port.push(n);
+      if (t === "rail") index.rail.push(n);
+    });
+    return index;
+  }
+
+  function findNearestNodeId(fromNode, candidates) {
+    let bestId = null;
+    let bestDist = Infinity;
+    for (const c of candidates) {
+      if (!c || !isFiniteNumber(c.lng) || !isFiniteNumber(c.lat)) continue;
+      const d = distanceKm(
+        { lng: fromNode.lng, lat: fromNode.lat },
+        { lng: c.lng, lat: c.lat }
+      );
+      if (d < bestDist) {
+        bestDist = d;
+        bestId = c.id;
+      }
+    }
+    return bestId;
+  }
+
+  function makeEphemeralFacilityId(taskId, endpointId, facilityType, role) {
+    const safeTask = String(taskId || "task").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const safeEndpoint = String(endpointId || "node").replace(
+      /[^a-zA-Z0-9_-]/g,
+      "_"
+    );
+    const safeRole = String(role || "endpoint").replace(/[^a-zA-Z0-9_-]/g, "_");
+    return `EPH_${safeTask}_${safeEndpoint}_${facilityType}_${safeRole}`;
+  }
+
+  function upsertEdge(edges, from, to, mode) {
+    const m = normalizeMode(mode);
+    for (const e of edges) {
+      if (!e) continue;
+      if (e.from === from && e.to === to && normalizeMode(e.mode) === m) return;
+    }
+    edges.push({ from, to, mode: m });
+  }
+
+  function filterEdgesByConstraintsAndModes(nodes, edges, allowedModes) {
+    const nodeMap = buildNodeMap(nodes);
+    const allowed = new Set((allowedModes || []).map((m) => normalizeMode(m)));
+    return (edges || []).filter((e) => {
+      if (!e || typeof e.from !== "string" || typeof e.to !== "string") return false;
+      if (!nodeMap[e.from] || !nodeMap[e.to]) return false;
+      const mode = normalizeMode(e.mode);
+      if (!allowed.has(mode)) return false;
+      if (mode === "road") return true;
+      const fromType = normalizeNodeType(nodeMap[e.from].type);
+      const toType = normalizeNodeType(nodeMap[e.to].type);
+      if (mode === "air") return fromType === "airport" && toType === "airport";
+      if (mode === "sea") return fromType === "port" && toType === "port";
+      if (mode === "rail") return fromType === "rail" && toType === "rail";
+      return false;
+    });
+  }
+
+  function buildRenderHints(legs, nodeMap) {
+    const hints = [];
+    legs.forEach((leg, idx) => {
+      const fromNode = nodeMap[leg.fromId];
+      const toNode = nodeMap[leg.toId];
+      if (!fromNode || !toNode) return;
+      const mode = normalizeMode(leg.mode);
+      const fromLngLat = [fromNode.lng, fromNode.lat];
+      const toLngLat = [toNode.lng, toNode.lat];
+
+      if (mode === "road") {
+        hints.push({
+          legIndex: idx,
+          mode: "road",
+          type: "navigation",
+          provider: "amap",
+          level: "intercity",
+          fromLngLat,
+          toLngLat
+        });
+        return;
+      }
+
+      hints.push({
+        legIndex: idx,
+        mode,
+        type: "arc",
+        fromLngLat,
+        toLngLat,
+        curvature: 0.35
+      });
+    });
+    return hints;
+  }
+}
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
@@ -712,153 +1131,25 @@ app.post("/api/config/rollback", (req, res) => {
 });
 
 app.post("/api/plan/route", async (req, res) => {
-  const body = req.body || {};
-  const objective = body.objective || "fast";
-  let nodes = body.nodes;
-  let edges = body.edges;
-  let originId = body.originId;
-  let destinationId = body.destinationId;
-  const events = Array.isArray(body.events) ? body.events : [];
-
-  if (!nodes || !edges || !originId || !destinationId) {
-    const def = buildDefaultNetwork();
-    nodes = def.nodes;
-    edges = def.edges;
-    originId = "CN_SHANGHAI";
-    destinationId = "EU_DUISBURG";
-  }
-
-  try {
-    edges = await enrichEdgesWithAmap(nodes, edges);
-  } catch (e) {
-    console.error("enrichEdgesWithAmap error:", e.message);
-  }
-
-  const graph = buildGraph(nodes, edges, currentConfig, objective, events);
-
-  if (!graph.nodeMap[originId] || !graph.nodeMap[destinationId]) {
-    res.status(400).json({
-      error: "originId or destinationId not found in nodes"
-    });
+  if (!req.body || typeof req.body !== "object") {
+    res.status(400).json({ error: "invalid request body" });
     return;
   }
 
-  let path = dijkstra(graph, originId, destinationId);
-  if (!path) {
-    const originNode = graph.nodeMap[originId];
-    const destNode = graph.nodeMap[destinationId];
-    if (originNode && destNode) {
-      const modeCounter = {};
-      edges.forEach((e) => {
-        if (
-          e &&
-          (e.from === originId ||
-            e.to === originId ||
-            e.from === destinationId ||
-            e.to === destinationId)
-        ) {
-          const m = normalizeMode(e.mode);
-          modeCounter[m] = (modeCounter[m] || 0) + 1;
-        }
-      });
-      const modePriority = ["road", "rail", "sea", "air"];
-      let fallbackMode = "road";
-      let bestCount = -1;
-      modePriority.forEach((m) => {
-        const c = modeCounter[m] || 0;
-        if (c > bestCount) {
-          bestCount = c;
-          fallbackMode = m;
-        }
-      });
-      const edge = { from: originId, to: destinationId, mode: fallbackMode };
-      const stats = computeLegStats(
-        edge,
-        originNode,
-        destNode,
-        currentConfig,
-        events
-      );
-      if (!stats.blocked) {
-        const leg = {
-          fromId: originId,
-          toId: destinationId,
-          mode: stats.mode,
-          distanceKm: stats.distanceKm,
-          timeHours: stats.timeHours,
-          cost: stats.cost,
-          co2: stats.co2,
-          affectedEvents: stats.affectedEvents || []
-        };
-        let virtualNodes = [];
-        try {
-          virtualNodes = await buildVirtualNodesForPath(graph.nodeMap, [leg]);
-        } catch (e) {
-          virtualNodes = [];
-        }
-        res.json({
-          objective,
-          originId,
-          destinationId,
-          summary: {
-            totalTimeHours: stats.timeHours,
-            totalCost: stats.cost,
-            totalCo2: stats.co2,
-            totalDistanceKm: stats.distanceKm
-          },
-          legs: [leg],
-          nodes: virtualNodes
-        });
-        return;
-      }
-    }
-    res.status(404).json({
-      error: "no path found between origin and destination"
-    });
+  let results = [];
+  try {
+    results = await planScenario(req.body);
+  } catch (e) {
+    res.status(500).json({ error: "planScenario failed" });
     return;
   }
 
-  let totalTime = 0;
-  let totalCost = 0;
-  let totalCo2 = 0;
-  let totalDistance = 0;
-  const legs = path.map((step) => {
-    totalTime += step.edge.timeHours;
-    totalCost += step.edge.cost;
-    totalCo2 += step.edge.co2;
-    totalDistance += step.edge.distanceKm;
-    return {
-      fromId: step.from,
-      toId: step.edge.to,
-      mode: step.edge.mode,
-      distanceKm: step.edge.distanceKm,
-      timeHours: step.edge.timeHours,
-      cost: step.edge.cost,
-      co2: step.edge.co2,
-      affectedEvents: step.edge.affectedEvents || []
-    };
-  });
-
-  let virtualNodes = [];
-  try {
-    virtualNodes = await buildVirtualNodesForPath(graph.nodeMap, legs);
-  } catch (e) {
-    virtualNodes = [];
+  if (!Array.isArray(results)) {
+    res.status(500).json({ error: "planScenario returned invalid result" });
+    return;
   }
 
-  res.json({
-    objective,
-    originId,
-    destinationId,
-    summary: {
-      totalTimeHours: totalTime,
-      totalCost,
-      totalCo2,
-      totalDistanceKm: totalDistance
-    },
-    legs,
-    nodes: virtualNodes
-  });
+  res.json(results);
 });
 
 app.get("/api/network/schemes", (req, res) => {
